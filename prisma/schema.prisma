@@ -35,25 +35,33 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  projectUsers  ProjectUser[]
-  stateChanges  BoxStateHistory[]
-  inUseSessions BoxInUseSession[]
+  projectUsers      ProjectUser[]
+  projectsCreated   Project[]
+  stateChanges      BoxStateHistory[]
+  stateChangesAs    BoxStateHistory[] @relation("installationUser")
+  inUseSessions     BoxInUseSession[]
+  projectUserAssign ProjectUser[] @relation("assignedBy")
 
   @@index([googleId])
   @@map("users")
 }
 
 model Project {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  status        String   @default("active") // Values: active, archived
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  status          String   @default("active") // Values: active, archived
+  csvUploadedAt   DateTime? @map("csv_uploaded_at")
+  defaultQrMode   String   @default("check-in") @map("default_qr_mode")
+  createdBy       String   @map("created_by")
+  archivedAt      DateTime? @map("archived_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  projectUsers  ProjectUser[]
-  boxes         Box[]
+  projectUsers    ProjectUser[]
+  boxes           Box[]
+  createdByUser   User     @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([status])
   @@map("projects")
@@ -64,13 +72,15 @@ model ProjectUser {
   projectId String   @map("project_id")
   userId    String   @map("user_id")
   role      String   // Values: admin, inventory_management, installation, read_only
+  assignedBy String? @map("assigned_by")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  assignedByUser User?    @relation("assignedBy", fields: [assignedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([projectId, userId], name: "idx_project_user_unique")
   @@index([projectId])
@@ -99,27 +109,28 @@ model Box {
 }
 
 model BoxStateHistory {
-  id              String   @id @default(cuid())
-  boxId           String   @map("box_id")
-  userId          String   @map("user_id")
-  previousState   String?  @map("previous_state") // Values: RECEIVED, IN_USE, READY_FOR_CHECKOUT, DEPARTED, null
-  newState        String   @map("new_state") // Values: RECEIVED, IN_USE, READY_FOR_CHECKOUT, DEPARTED
-  changeType      String   @map("change_type") // Values: state_change, condition_update, note_update, assignment_change
+  id                String   @id @default(cuid())
+  boxId             String   @map("box_id")
+  stateSetBy        String   @map("state_set_by")
+  state             String   @map("state") // Values: RECEIVED, IN_USE, READY_FOR_CHECKOUT, DEPARTED
+  installationUser  String?  @map("installation_user")
+  changeType        String   @map("change_type") // Values: state_change, condition_update, note_update, assignment_change
 
   // Condition & damage tracking
-  condition       String?  // 'ok' or 'damaged'
-  brokenItems     String?  @map("broken_items") // Free-text list of damaged items
-  notes           String?
+  condition         String?  // 'ok' or 'damaged'
+  brokenItems       String?  @map("broken_items") // Free-text list of damaged items
+  notes             String?
 
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   // Relations
-  box             Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
-  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+  box               Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  stateSetByUser    User     @relation(fields: [stateSetBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  installationUserRel User?  @relation("installationUser", fields: [installationUser], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([boxId])
-  @@index([userId])
-  @@index([newState])
+  @@index([stateSetBy])
+  @@index([state])
   @@index([createdAt])
   @@map("box_state_history")
 }
@@ -129,12 +140,12 @@ model BoxInUseSession {
   boxId           String   @map("box_id")
   userId          String   @map("user_id")
   activatedAt     DateTime @default(now()) @map("activated_at")
-  deactivatedAt   DateTime? @map("deactivated_at")
+  completedAt     DateTime? @map("completed_at")
   usageNotes      String?  @map("usage_notes")
 
   // Relations
   box             Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
-  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([boxId])
   @@index([userId])
