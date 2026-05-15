@@ -1,0 +1,143 @@
+// Real-Time Inventory Tracking & Handoff System
+// Complete database schema with SQL Server provider
+// Version: 1.0.0
+// Note: SQL Server doesn't support native enums, so we use string fields with validation
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+}
+
+// ============================================================================
+// TYPE DEFINITIONS (validated in application code)
+// ============================================================================
+// BoxState values: RECEIVED, IN_USE, READY_FOR_CHECKOUT, DEPARTED
+// UserRole values: admin, inventory_management, installation, read_only
+// ChangeType values: state_change, condition_update, note_update, assignment_change
+// ProjectStatus values: active, archived
+
+// ============================================================================
+// CORE TABLES
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  googleId      String?   @unique @map("google_id")
+  avatar        String?
+  lastLogin     DateTime? @map("last_login")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  projectUsers  ProjectUser[]
+  stateChanges  BoxStateHistory[]
+  inUseSessions BoxInUseSession[]
+
+  @@index([googleId])
+  @@map("users")
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  status        String   @default("active") // Values: active, archived
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  projectUsers  ProjectUser[]
+  boxes         Box[]
+
+  @@index([status])
+  @@map("projects")
+}
+
+model ProjectUser {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  role      String   // Values: admin, inventory_management, installation, read_only
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId], name: "idx_project_user_unique")
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_users")
+}
+
+model Box {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  qrCode      String   @map("qr_code")
+  label       String?
+  description String?
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stateHistory  BoxStateHistory[]
+  inUseSessions BoxInUseSession[]
+
+  @@unique([projectId, qrCode], name: "idx_project_qrcode_unique")
+  @@index([projectId])
+  @@map("boxes")
+}
+
+model BoxStateHistory {
+  id              String   @id @default(cuid())
+  boxId           String   @map("box_id")
+  userId          String   @map("user_id")
+  previousState   String?  @map("previous_state") // Values: RECEIVED, IN_USE, READY_FOR_CHECKOUT, DEPARTED, null
+  newState        String   @map("new_state") // Values: RECEIVED, IN_USE, READY_FOR_CHECKOUT, DEPARTED
+  changeType      String   @map("change_type") // Values: state_change, condition_update, note_update, assignment_change
+
+  // Condition & damage tracking
+  condition       String?  // 'ok' or 'damaged'
+  brokenItems     String?  @map("broken_items") // Free-text list of damaged items
+  notes           String?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  box             Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+
+  @@index([boxId])
+  @@index([userId])
+  @@index([newState])
+  @@index([createdAt])
+  @@map("box_state_history")
+}
+
+model BoxInUseSession {
+  id              String   @id @default(cuid())
+  boxId           String   @map("box_id")
+  userId          String   @map("user_id")
+  activatedAt     DateTime @default(now()) @map("activated_at")
+  deactivatedAt   DateTime? @map("deactivated_at")
+  usageNotes      String?  @map("usage_notes")
+
+  // Relations
+  box             Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+
+  @@index([boxId])
+  @@index([userId])
+  @@index([activatedAt])
+  @@map("box_in_use_sessions")
+}
