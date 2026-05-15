@@ -16,7 +16,8 @@ export async function withAuth(
 ) {
   const user = await getSessionUser(req, res);
   if (!user?.email) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   const dbUser = await prisma.user.findUnique({
@@ -24,13 +25,13 @@ export async function withAuth(
   });
 
   if (!dbUser) {
-    return res.status(401).json({ error: 'User not found' });
+    res.status(401).json({ error: 'User not found' });
+    return;
   }
 
   req.userId = dbUser.id;
   req.userEmail = user.email;
   req.userName = user.name || '';
-  return null;
 }
 
 export async function withProjectRole(
@@ -39,11 +40,10 @@ export async function withProjectRole(
   projectId: string,
   requiredRoles: UserRole[],
 ) {
-  const authError = await withAuth(req, res);
-  if (authError) return authError;
-
+  await withAuth(req, res);
   if (!req.userId) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   const projectUser = await prisma.projectUser.findUnique({
@@ -56,8 +56,7 @@ export async function withProjectRole(
   });
 
   if (!projectUser || !requiredRoles.includes(projectUser.role as UserRole)) {
-    return res.status(403).json({ error: 'Forbidden' });
+    res.status(403).json({ error: 'Forbidden' });
+    return;
   }
-
-  return null;
 }

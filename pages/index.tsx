@@ -5,16 +5,20 @@ import { useEffect } from 'react';
 import Login from '@/components/Login';
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
+    if (status === 'authenticated' && session) {
       router.replace('/dashboard');
     }
-  }, [session, router]);
+  }, [session, status, router]);
 
-  if (session) {
+  if (status === 'loading') {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (status === 'authenticated') {
     return null;
   }
 

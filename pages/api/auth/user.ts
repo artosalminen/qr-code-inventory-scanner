@@ -1,20 +1,20 @@
 // src/pages/api/auth/user.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/session';
+import { NextApiResponse } from 'next';
+import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = await getSessionUser(req, res);
-  if (!user?.email) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  await withAuth(req, res);
+  if (!req.userId) {
+    return; // Response already sent by withAuth
   }
 
   const dbUser = await prisma.user.findUnique({
-    where: { email: user.email },
+    where: { id: req.userId },
   });
 
   if (!dbUser) {
