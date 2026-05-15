@@ -136,19 +136,19 @@ model BoxStateHistory {
 }
 
 model BoxInUseSession {
-  id              String   @id @default(cuid())
-  boxId           String   @map("box_id")
-  userId          String   @map("user_id")
-  activatedAt     DateTime @default(now()) @map("activated_at")
-  completedAt     DateTime? @map("completed_at")
-  usageNotes      String?  @map("usage_notes")
+  id                  String   @id @default(cuid())
+  boxId               String   @map("box_id")
+  installationUserId  String   @map("installation_user_id")
+  activatedAt         DateTime @default(now()) @map("activated_at")
+  completedAt         DateTime? @map("completed_at")
+  usageNotes          String?  @map("usage_notes")
 
   // Relations
-  box             Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
-  user            User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  box                 Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  installationUser    User     @relation(fields: [installationUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([boxId])
-  @@index([userId])
+  @@index([installationUserId])
   @@index([activatedAt])
   @@map("box_in_use_sessions")
 }
