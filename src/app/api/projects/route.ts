@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextApiResponse } from 'next';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withAuth(authenticatedReq, {} as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withAuth(authenticatedReq, dummyRes);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,7 +40,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withAuth(authenticatedReq, {} as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withAuth(authenticatedReq, dummyRes);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 import { parseCSV, validateCSVRows } from '@/lib/csv-parser';
@@ -8,7 +9,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withProjectRole(authenticatedReq, {} as any, params.id, ['admin']);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withProjectRole(authenticatedReq, dummyRes, params.id, ['admin']);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -77,10 +80,11 @@ export async function POST(
       success: true,
       boxesCreated: boxes.count,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     console.error('Error uploading CSV:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

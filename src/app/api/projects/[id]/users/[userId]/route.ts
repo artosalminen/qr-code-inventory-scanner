@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 import { UserRole } from '@/types';
@@ -8,7 +9,9 @@ export async function PUT(
   { params }: { params: { id: string; userId: string } }
 ) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withProjectRole(authenticatedReq, {} as any, params.id, ['admin']);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withProjectRole(authenticatedReq, dummyRes, params.id, ['admin']);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -39,9 +42,9 @@ export async function PUT(
     });
 
     return NextResponse.json(projectUser);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating project user:', error);
-    if (error.code === 'P2025') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Project user not found' },
         { status: 404 }
@@ -56,7 +59,9 @@ export async function DELETE(
   { params }: { params: { id: string; userId: string } }
 ) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withProjectRole(authenticatedReq, {} as any, params.id, ['admin']);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withProjectRole(authenticatedReq, dummyRes, params.id, ['admin']);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -73,9 +78,9 @@ export async function DELETE(
     });
 
     return NextResponse.json(null, { status: 204 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting project user:', error);
-    if (error.code === 'P2025') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Project user not found' },
         { status: 404 }

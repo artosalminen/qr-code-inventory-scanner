@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 
@@ -7,7 +8,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withProjectRole(authenticatedReq, {} as any, params.id, [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withProjectRole(authenticatedReq, dummyRes, params.id, [
     'admin',
     'inventory_management',
     'installation',

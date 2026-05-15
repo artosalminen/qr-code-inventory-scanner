@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 import { UserRole } from '@/types';
@@ -8,7 +9,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withProjectRole(authenticatedReq, {} as any, params.id, ['admin']);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withProjectRole(authenticatedReq, dummyRes, params.id, ['admin']);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -36,7 +39,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   const authenticatedReq = req as unknown as AuthenticatedRequest;
-  await withProjectRole(authenticatedReq, {} as any, params.id, ['admin']);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummyRes = {} as any as NextApiResponse;
+  await withProjectRole(authenticatedReq, dummyRes, params.id, ['admin']);
 
   if (!authenticatedReq.userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -70,9 +75,9 @@ export async function POST(
     });
 
     return NextResponse.json(projectUser, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating project user:', error);
-    if (error.code === 'P2002') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
       return NextResponse.json(
         { error: 'User already assigned to project' },
         { status: 400 }

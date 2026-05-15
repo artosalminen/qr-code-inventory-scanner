@@ -1,7 +1,32 @@
-import { prisma } from '@/lib/db';
 import { parseCSV, validateCSVRows } from '@/lib/csv-parser';
 
-jest.mock('@/lib/db');
+// Mock Prisma before importing anything that uses it
+jest.mock('@/lib/db', () => ({
+  prisma: {
+    project: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    box: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      createMany: jest.fn(),
+    },
+    projectUser: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+  },
+}));
+
+// Import after mocking
+import { prisma } from '@/lib/db';
 
 describe('CSV Parser', () => {
   it('should parse valid CSV content', () => {
