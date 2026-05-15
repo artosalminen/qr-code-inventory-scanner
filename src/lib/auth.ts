@@ -1,9 +1,11 @@
 // src/lib/auth.ts
 import { type NextAuthOptions } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from './db';
 import { config } from './config';
+import type { Session } from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -18,9 +20,16 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (session.user && token.id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session as any).user.id = token.id;
       }
       return session;
     },
@@ -28,9 +37,6 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
     maxAge: 12 * 60 * 60, // 12 hours
-  },
-  jwt: {
-    secret: config.nextauth.secret,
   },
   events: {
     async signIn({ user }) {

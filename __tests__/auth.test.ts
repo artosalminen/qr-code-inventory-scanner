@@ -1,6 +1,5 @@
 // __tests__/auth.test.ts
 import { getSessionUser } from '@/lib/session';
-import { prisma } from '@/lib/db';
 import { NextApiRequest, NextApiResponse } from 'next';
 
 jest.mock('@/lib/session');

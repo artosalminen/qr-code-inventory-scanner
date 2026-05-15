@@ -48,7 +48,7 @@ export async function withProjectRole(
 
   const projectUser = await prisma.projectUser.findUnique({
     where: {
-      projectId_userId: {
+      idx_project_user_unique: {
         projectId,
         userId: req.userId,
       },
