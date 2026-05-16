@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/db';
 import { isValidTransition, getTargetState } from '@/lib/state-machine';
+import { broadcastBoxStateChanged } from '@/lib/broadcast';
 import { ScanPayload, ScanAction, BoxState } from '@/types';
 
 export default async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
@@ -106,6 +107,23 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
         stateHistory,
       };
     });
+
+    // Broadcast state change after response
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (user) {
+      broadcastBoxStateChanged(projectId, {
+        boxId: result.box.id,
+        newState: result.stateHistory.state,
+        user: {
+          id: user.id,
+          name: user.name || '',
+          email: user.email,
+        },
+        timestamp: result.stateHistory.createdAt,
+        condition: result.stateHistory.condition || undefined,
+        notes: result.stateHistory.notes || undefined,
+      });
+    }
 
     return res.status(200).json({
       success: true,
