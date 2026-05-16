@@ -1,34 +1,34 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import Login from '@/components/Login';
 
 export async function getServerSideProps(context: any) {
   const session = await getServerSession(context.req, context.res, authOptions);
+  if (session) {
+    return {
+      redirect: {
+        destination: '/dashboard',
+        permanent: false,
+      },
+    };
+  }
   return {
     props: { session },
   };
 }
 
-export default function Home() {
-  const { data: session, status } = useSession();
+export default function SignIn() {
+  const { data: session } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'authenticated' && session) {
+    if (session) {
       router.replace('/dashboard');
     }
-  }, [session, status, router]);
-
-  if (status === 'loading') {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (status === 'authenticated') {
-    return null;
-  }
+  }, [session, router]);
 
   return <Login />;
 }
