@@ -39,7 +39,11 @@
       "Bash(npm test *)",
       "Bash(Get-ChildItem -Path \"C:\\\\repos\\\\slmnn\\\\qr-code-inventory\" -Filter \"*.eslintrc*\" -ErrorAction SilentlyContinue)",
       "Bash(Get-ChildItem -Path \"C:\\\\repos\\\\slmnn\\\\qr-code-inventory\" -Recurse -Directory -Filter \"api\")",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(sort -t_ -k3 -rn)",
+      "Bash(xargs grep -h '\"name\":\"Bash\"')",
+      "Skill(superpowers:executing-plans)",
+      "Skill(superpowers:finishing-a-development-branch)"
     ]
   }
 }
