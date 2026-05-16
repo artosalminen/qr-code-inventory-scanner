@@ -113,7 +113,7 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     if (user) {
       broadcastBoxStateChanged(projectId, {
         boxId: result.box.id,
-        newState: result.stateHistory.state,
+        newState: result.stateHistory.state as BoxState,
         user: {
           id: user.id,
           name: user.name || '',

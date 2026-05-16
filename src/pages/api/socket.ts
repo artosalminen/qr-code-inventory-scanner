@@ -2,11 +2,13 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { initializeSocket } from '@/lib/socket';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!res.socket.server.io) {
+  const socketServer = (res.socket as any)?.server;
+  if (!socketServer?.io) {
     console.log('Initializing Socket.io...');
-    const httpServer = res.socket.server as any;
-    initializeSocket(httpServer);
-    res.socket.server.io = true;
+    if (socketServer) {
+      initializeSocket(socketServer);
+      socketServer.io = true;
+    }
   }
   res.end();
 }
