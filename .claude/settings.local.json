@@ -43,7 +43,8 @@
       "Bash(sort -t_ -k3 -rn)",
       "Bash(xargs grep -h '\"name\":\"Bash\"')",
       "Skill(superpowers:executing-plans)",
-      "Skill(superpowers:finishing-a-development-branch)"
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Bash(taskkill /PID 60360 /F)"
     ]
   }
 }
