@@ -209,21 +209,29 @@ npx prisma migrate dev --name init
 npm run dev
 ```
 
-### Staging/Production (Azure)
+### Staging/Production (Vercel)
 
-Deployment is automated via GitHub Actions on push to `main`. Workflow:
-1. Build Next.js app
-2. Validate Prisma schema
-3. Run tests
-4. Build Docker image
-5. Push to Azure Container Registry
-6. Deploy to App Service
-7. Run Prisma migrations (in Dockerfile ENTRYPOINT)
-8. Restart service
+Deployment is automated via Vercel on push to `main`. Workflow:
+1. Push to GitHub (main branch)
+2. Vercel automatically detects the push
+3. Vercel builds Next.js app
+4. Run Prisma migrations via postbuild script
+5. Deploy to Vercel edge network
+6. Custom domain redirects traffic (if configured)
 
-See `deployment_cicd_guide.md` for complete setup (Azure resources, GitHub secrets, workflow file).
+**Setup:**
+1. Link GitHub repository to vercel.com
+2. Configure environment variables in Vercel dashboard:
+   - `DATABASE_URL` → Prisma Postgres connection string
+   - `NEXTAUTH_URL` → Your Vercel domain (e.g., `https://project.vercel.app`)
+   - `NEXTAUTH_SECRET` → Generate: `openssl rand -base64 32`
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` → From Google OAuth Console
+3. Update Google OAuth redirect URIs to include Vercel domain
+4. Push to main → Vercel auto-deploys
 
-**Rollback:** If deployment breaks, use `git revert HEAD && git push` to trigger new deployment with previous commit. Database rollback is manual (SQL backups or Prisma migration resolve).
+See `docs/VERCEL_DEPLOYMENT.md` for complete setup and troubleshooting.
+
+**Rollback:** Revert commit on GitHub and push — Vercel automatically re-deploys previous version. Preview deployments are available for each commit.
 
 ## Common Tasks
 

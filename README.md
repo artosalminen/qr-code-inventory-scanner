@@ -170,205 +170,118 @@ npm test -- --watch
 npm run build
 ```
 
-## Deployment to Azure
+## Deployment to Vercel
+
+This application deploys to **Vercel** with automatic CI/CD, serverless functions, and zero-config setup.
 
 ### Prerequisites
 
-- Azure subscription
-- Azure CLI installed (`az --version`)
-- Docker Desktop installed
-- GitHub repository with CI/CD pipeline
+- GitHub account with repository pushed
+- Vercel account (free tier: https://vercel.com)
+- Prisma Postgres database (https://console.prisma.io)
+- Google OAuth credentials
 
-### Step 1: Create Azure Resources
+### Quick Start (5 minutes)
 
-#### 1.1 Create Resource Group
+1. **Create Prisma Postgres Database**
+   - Go to https://console.prisma.io
+   - Create new database instance
+   - Copy connection string
+
+2. **Link Repository to Vercel**
+   - Go to https://vercel.com/dashboard
+   - Click "New Project"
+   - Import GitHub repository `qr-code-inventory-scanner`
+   - Vercel auto-detects Next.js configuration
+
+3. **Configure Environment Variables in Vercel**
+   - Go to project Settings → Environment Variables
+   - Add all required variables (see below)
+
+4. **Update Google OAuth**
+   - Add Vercel domain to Google Console authorized redirect URIs
+   - Format: `https://<your-vercel-domain>.vercel.app/api/auth/callback/google`
+
+5. **Deploy**
+   - Push to main branch
+   - Vercel automatically deploys
+   - Visit your Vercel domain to see live application
+
+### Environment Variables Required
+
+| Variable | Example Value |
+|----------|---------------|
+| `DATABASE_URL` | `postgresql://user:password@host:5432/db?schema=public` |
+| `NEXTAUTH_URL` | `https://qr-code-inventory.vercel.app` |
+| `NEXTAUTH_SECRET` | Generate: `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` | From Google Console |
+| `GOOGLE_CLIENT_SECRET` | From Google Console |
+| `NEXT_PUBLIC_API_URL` | `https://qr-code-inventory.vercel.app` |
+| `NEXT_PUBLIC_SOCKET_URL` | `https://qr-code-inventory.vercel.app` |
+
+### How It Works
+
+1. **Push to GitHub** → Vercel detects change
+2. **Build** → Runs `npm run build`
+3. **Migrations** → Runs `npx prisma migrate deploy` (postbuild)
+4. **Deploy** → Serverless functions live on edge
+5. **Preview** → Each commit gets preview URL
+6. **Production** → Main branch is production
+
+### Database Migrations
+
+Migrations run automatically via postbuild script:
+
+```json
+{
+  "postbuild": "npx prisma migrate deploy"
+}
+```
+
+To create new migrations locally:
 
 ```bash
-az group create \
-  --name inventory-rg \
-  --location eastus
+npx prisma migrate dev --name add_feature
 ```
 
-#### 1.2 Create Azure SQL Database
+Then push to GitHub — Vercel automatically applies migrations on deploy.
 
-```bash
-# Create SQL Server
-az sql server create \
-  --name inventory-sqlserver \
-  --resource-group inventory-rg \
-  --location eastus \
-  --admin-user sqladmin \
-  --admin-password 'YourSecurePassword123!'
+### Monitor and Debug
 
-# Allow Azure services to access
-az sql server firewall-rule create \
-  --server inventory-sqlserver \
-  --resource-group inventory-rg \
-  --name AllowAzureServices \
-  --start-ip-address 0.0.0.0 \
-  --end-ip-address 0.0.0.0
+**View Logs:**
+- Vercel dashboard → Deployments → click deployment → Logs tab
 
-# Create database
-az sql db create \
-  --server inventory-sqlserver \
-  --resource-group inventory-rg \
-  --name inventory_db \
-  --sku Standard \
-  --tier S0
-```
+**Common Issues:**
+- Database connection failed → Check `DATABASE_URL` in environment variables
+- Migration failed → Verify Prisma Postgres is running
+- Build failed → Run `npm run build` locally to debug
+- Auth errors → Check `NEXTAUTH_URL` matches Vercel domain
 
-#### 1.3 Create Container Registry
+### Custom Domain (Optional)
 
-```bash
-az acr create \
-  --resource-group inventory-rg \
-  --name inventoryregistry \
-  --sku Basic
-```
+1. Go to project Settings → Domains
+2. Add your domain
+3. Follow DNS configuration
+4. Update `NEXTAUTH_URL` to custom domain
+5. Update Google OAuth redirect URIs
 
-#### 1.4 Create App Service Plan
+### Rollback
 
-```bash
-az appservice plan create \
-  --name inventory-plan \
-  --resource-group inventory-rg \
-  --sku B2 \
-  --is-linux
-```
+Previous deployments are always available:
+1. Go to Deployments tab
+2. Find previous working deployment
+3. Click (•••) → Promote to Production
 
-#### 1.5 Create Web App
+### For Detailed Instructions
 
-```bash
-az webapp create \
-  --resource-group inventory-rg \
-  --plan inventory-plan \
-  --name inventory-app \
-  --deployment-container-image-name-placeholder placeholder
-```
-
-### Step 2: Configure Environment Variables
-
-In Azure Portal or via Azure CLI, set app settings:
-
-```bash
-az webapp config appsettings set \
-  --resource-group inventory-rg \
-  --name inventory-app \
-  --settings \
-  DATABASE_URL="sqlserver://inventory-sqlserver.database.windows.net:1433;database=inventory_db;user=sqladmin;password=YourSecurePassword123!;encrypt=true;trustServerCertificate=false;Connection Timeout=30;" \
-  NEXTAUTH_URL="https://inventory-app.azurewebsites.net" \
-  NEXTAUTH_SECRET="$(openssl rand -base64 32)" \
-  GOOGLE_CLIENT_ID="YOUR_PRODUCTION_CLIENT_ID" \
-  GOOGLE_CLIENT_SECRET="YOUR_PRODUCTION_CLIENT_SECRET" \
-  NEXT_PUBLIC_SOCKET_URL="https://inventory-app.azurewebsites.net" \
-  NODE_ENV="production"
-```
-
-### Step 3: Configure Docker & Container Registry
-
-#### 3.1 Build Docker Image
-
-```bash
-docker build -t inventoryregistry.azurecr.io/inventory:latest .
-```
-
-#### 3.2 Log in to Container Registry
-
-```bash
-az acr login --name inventoryregistry
-```
-
-#### 3.3 Push Image to Registry
-
-```bash
-docker push inventoryregistry.azurecr.io/inventory:latest
-```
-
-### Step 4: Configure Web App for Container Registry
-
-```bash
-# Enable managed identity
-az webapp identity assign \
-  --resource-group inventory-rg \
-  --name inventory-app
-
-# Grant registry pull permissions
-az role assignment create \
-  --assignee-object-id $(az webapp identity show -g inventory-rg -n inventory-app --query principalId -o tsv) \
-  --role AcrPull \
-  --scope $(az acr show -n inventoryregistry --query id -o tsv)
-
-# Configure container settings
-az webapp config container set \
-  --resource-group inventory-rg \
-  --name inventory-app \
-  --docker-custom-image-name inventoryregistry.azurecr.io/inventory:latest \
-  --docker-registry-server-url https://inventoryregistry.azurecr.io
-```
-
-### Step 5: Set Up CI/CD Pipeline (GitHub Actions)
-
-The project includes a GitHub Actions workflow (`.github/workflows/deploy-dev.yml`) that:
-
-1. Runs tests on every push
-2. Builds Docker image
-3. Pushes to Azure Container Registry
-4. Deploys to App Service
-
-#### 5.1 Create GitHub Secrets
-
-In GitHub repository settings → Secrets and variables → Actions, add:
-
-| Secret | Value |
-|--------|-------|
-| `AZURE_REGISTRY_LOGIN_SERVER` | `inventoryregistry.azurecr.io` |
-| `AZURE_REGISTRY_USERNAME` | Azure Container Registry username |
-| `AZURE_REGISTRY_PASSWORD` | Azure Container Registry password |
-| `AZURE_RESOURCE_GROUP` | `inventory-rg` |
-| `AZURE_WEBAPP_NAME` | `inventory-app` |
-
-#### 5.2 View Deployment Status
-
-Push to main branch and monitor GitHub Actions workflow under the "Actions" tab.
-
-### Step 6: Database Migrations on Deploy
-
-The `Dockerfile` includes:
-
-```dockerfile
-RUN npx prisma migrate deploy
-```
-
-This automatically runs pending migrations when the container starts in production.
-
-### Step 7: Monitor Deployment
-
-```bash
-# View logs
-az webapp log tail --resource-group inventory-rg --name inventory-app
-
-# Check app status
-az webapp show \
-  --resource-group inventory-rg \
-  --name inventory-app \
-  --query "state"
-```
-
-### Step 8: Set Up Custom Domain (Optional)
-
-```bash
-# Add custom domain
-az webapp config hostname add \
-  --resource-group inventory-rg \
-  --webapp-name inventory-app \
-  --hostname yourdomain.com
-
-# Create SSL binding (requires certificate)
-az webapp config ssl bind \
-  --resource-group inventory-rg \
-  --name inventory-app \
-  --certificate-thumbprint YOUR_CERT_THUMBPRINT
-```
+See **`docs/VERCEL_DEPLOYMENT.md`** for complete setup guide including:
+- Prisma Postgres configuration
+- Environment variable setup
+- Google OAuth configuration
+- Troubleshooting
+- Security best practices
+- Custom domain setup
+- Database management
 
 ## Common Deployment Issues
 
