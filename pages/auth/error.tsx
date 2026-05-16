@@ -16,7 +16,6 @@ export default function AuthError() {
     OAuthSignin: 'Error connecting to the OAuth provider.',
     OAuthCallback: 'Error completing the OAuth authentication.',
     EmailCreateAccount: 'Could not create user account.',
-    Callback: 'Authentication error.',
     OAuthAccountNotLinked: 'Email already exists with a different provider.',
     EmailSignInError: 'Email sign in failed.',
     CredentialsSignin: 'Sign in failed.',
