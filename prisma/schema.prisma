@@ -4,11 +4,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  engineType = "node"
 }
 
 datasource db {
   provider = "sqlserver"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
