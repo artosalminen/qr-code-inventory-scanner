@@ -1,57 +1,74 @@
-import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface QRScannerProps {
   onScan: (qrCode: string) => void;
   isOpen: boolean;
 }
 
-// Dynamically import to avoid SSR issues
-const QrScannerComponent = dynamic(
-  () => import('react-qr-scanner').then((mod) => mod.QrScanner),
-  { ssr: false, loading: () => <div className="h-80 bg-slate-700 animate-pulse rounded-lg" /> },
-);
-
 export default function QRScanner({ onScan, isOpen }: QRScannerProps) {
-  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerRef = useRef<any>(null);
 
-  const handleDecode = (result: any) => {
-    if (result?.text) {
-      onScan(result.text);
+  useEffect(() => {
+    if (!isOpen || !videoRef.current) {
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current = null;
+      }
+      return;
     }
-  };
 
-  const handleError = (error: any) => {
-    // Suppress permission and other non-critical errors
-    if (error?.name !== 'NotAllowedError' && error?.name !== 'NotFoundError') {
-      console.error('QR Scanner error:', error);
-    }
-  };
+    // Import dynamically to avoid SSR issues
+    const initScanner = async () => {
+      try {
+        const QrScanner = (await import('qr-scanner')).default;
+
+        const scanner = new QrScanner(
+          videoRef.current!,
+          (result: any) => {
+            onScan(result.data);
+          },
+          {
+            onDecodeError: (error: any) => {
+              // Silently ignore decode errors
+            },
+            preferredCamera: 'environment',
+            highlightCodeOutline: true,
+            maxScansPerSecond: 5,
+          },
+        );
+
+        scannerRef.current = scanner;
+        await scanner.start();
+      } catch (error) {
+        console.error('Failed to initialize QR scanner:', error);
+      }
+    };
+
+    initScanner();
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current = null;
+      }
+    };
+  }, [isOpen, onScan]);
 
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="w-full space-y-3">
-      {error && (
-        <div className="bg-red-900 border border-red-600 text-red-200 p-4 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
+    <div className="w-full">
       <div className="relative bg-black rounded-lg overflow-hidden aspect-square max-w-md mx-auto shadow-lg">
-        <QrScannerComponent
-          onDecode={handleDecode}
-          onError={handleError}
-          constraints={{
-            audio: false,
-            video: {
-              facingMode: 'environment', // Use back camera on mobile
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-            },
-          }}
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          style={{ display: 'block' }}
+          playsInline
+          autoPlay
+          muted
         />
 
         {/* Scanner frame overlay */}
