@@ -69,7 +69,9 @@
       "Bash(pkill -f \"npm run dev\")",
       "WebFetch(domain:authjs.dev)",
       "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
-      "Bash(xargs grep -l -i \"admin\")"
+      "Bash(xargs grep -l -i \"admin\")",
+      "Bash(taskkill /PID 32756 /F)",
+      "Bash(npm uninstall *)"
     ]
   }
 }
