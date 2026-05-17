@@ -3,7 +3,7 @@ import { type NextAuthOptions } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { prisma } from './db';
+import prisma from './db';
 import { config } from './config';
 import type { Session } from 'next-auth';
 
