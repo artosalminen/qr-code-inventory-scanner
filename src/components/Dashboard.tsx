@@ -8,10 +8,10 @@ interface DashboardProps {
 }
 
 const stateColors: Record<BoxState, string> = {
-  received: 'bg-blue-100 border-blue-300',
-  in_use: 'bg-yellow-100 border-yellow-300',
-  ready_for_checkout: 'bg-orange-100 border-orange-300',
-  departed: 'bg-green-100 border-green-300',
+  received: 'bg-blue-900 border-blue-500 hover:bg-blue-800',
+  in_use: 'bg-yellow-900 border-yellow-500 hover:bg-yellow-800',
+  ready_for_checkout: 'bg-orange-900 border-orange-500 hover:bg-orange-800',
+  departed: 'bg-green-900 border-green-500 hover:bg-green-800',
 };
 
 const stateLabels: Record<BoxState, string> = {
@@ -90,34 +90,36 @@ export default function Dashboard({ projectId }: DashboardProps) {
     <>
       <RealtimeSync projectId={projectId} onBoxStateChanged={handleBoxStateChanged} />
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-white p-4 rounded shadow">
-          <div className="text-gray-600 text-sm">Total</div>
-          <div className="text-3xl font-bold">{stats.total}</div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-slate-800 border border-slate-700 p-4 sm:p-6 rounded-lg">
+          <div className="text-slate-400 text-xs sm:text-sm">Total</div>
+          <div className="text-2xl sm:text-4xl font-bold text-slate-50 mt-2">{stats.total}</div>
         </div>
-        <div className="bg-blue-100 p-4 rounded shadow">
-          <div className="text-gray-600 text-sm">Received</div>
-          <div className="text-3xl font-bold">{stats.received}</div>
+        <div className="bg-slate-800 border border-blue-500 p-4 sm:p-6 rounded-lg">
+          <div className="text-slate-400 text-xs sm:text-sm">Received</div>
+          <div className="text-2xl sm:text-4xl font-bold text-blue-400 mt-2">{stats.received}</div>
         </div>
-        <div className="bg-yellow-100 p-4 rounded shadow">
-          <div className="text-gray-600 text-sm">In Use</div>
-          <div className="text-3xl font-bold">{stats.inUse}</div>
+        <div className="bg-slate-800 border border-yellow-500 p-4 sm:p-6 rounded-lg">
+          <div className="text-slate-400 text-xs sm:text-sm">In Use</div>
+          <div className="text-2xl sm:text-4xl font-bold text-yellow-400 mt-2">{stats.inUse}</div>
         </div>
-        <div className="bg-green-100 p-4 rounded shadow">
-          <div className="text-gray-600 text-sm">Departed</div>
-          <div className="text-3xl font-bold">{stats.departed}</div>
+        <div className="bg-slate-800 border border-green-500 p-4 sm:p-6 rounded-lg">
+          <div className="text-slate-400 text-xs sm:text-sm">Departed</div>
+          <div className="text-2xl sm:text-4xl font-bold text-green-400 mt-2">{stats.departed}</div>
         </div>
       </div>
 
-      <div className="mb-4 flex gap-2 flex-wrap">
+      {/* Filter Buttons */}
+      <div className="mb-6 flex gap-2 flex-wrap">
         {(['all', 'received', 'in_use', 'ready_for_checkout', 'departed'] as const).map((state) => (
           <button
             key={state}
             onClick={() => setFilterState(state)}
-            className={`px-4 py-2 rounded font-medium ${
+            className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition text-sm sm:text-base ${
               filterState === state
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
             }`}
           >
             {state === 'all' ? 'All' : stateLabels[state]}
@@ -125,54 +127,81 @@ export default function Dashboard({ projectId }: DashboardProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      {/* Boxes Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-24 sm:mb-0">
         {filteredBoxes.map((box) => {
           const currentState = (box.currentState || 'received') as BoxState;
           return (
-            <div
+            <button
               key={box.id}
               onClick={() => handleSelectBox(box)}
-              className={`p-4 rounded border-2 cursor-pointer transition ${stateColors[currentState]} ${
-                selectedBox?.id === box.id ? 'ring-2 ring-blue-500' : ''
+              className={`p-4 sm:p-6 rounded-lg border-2 cursor-pointer transition active:scale-95 text-left ${
+                stateColors[currentState]
+              } ${
+                selectedBox?.id === box.id ? 'ring-2 ring-blue-400 bg-opacity-20' : ''
               }`}
             >
-              <div className="font-bold text-sm truncate">{box.label || 'Unlabeled'}</div>
-              <div className="text-xs text-gray-600">{box.qrCode}</div>
-              <div className="mt-2 text-sm font-medium">{stateLabels[currentState]}</div>
-            </div>
+              <div className="font-bold text-sm sm:text-base truncate text-slate-50">
+                {box.label || 'Unlabeled'}
+              </div>
+              <div className="text-xs sm:text-sm text-slate-300 mt-1">{box.qrCode}</div>
+              <div className="mt-3 text-sm sm:text-base font-medium text-slate-50">
+                {stateLabels[currentState]}
+              </div>
+            </button>
           );
         })}
       </div>
 
+      {/* Bottom Sheet - Box Details */}
       {selectedBox && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white p-6 border-t max-h-[50vh] overflow-y-auto">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="text-lg font-bold">{selectedBox.label || 'Unlabeled'}</h3>
-              <p className="text-gray-600 text-sm">{selectedBox.qrCode}</p>
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-600 max-h-[60vh] sm:max-h-[50vh] overflow-y-auto rounded-t-lg sm:rounded-t-xl z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-lg sm:text-2xl font-bold text-slate-50">
+                  {selectedBox.label || 'Unlabeled'}
+                </h3>
+                <p className="text-slate-400 text-sm mt-1">{selectedBox.qrCode}</p>
+              </div>
+              <button
+                onClick={() => setSelectedBox(null)}
+                className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition"
+              >
+                ✕
+              </button>
             </div>
-            <button onClick={() => setSelectedBox(null)} className="text-2xl">
-              ×
-            </button>
-          </div>
 
-          <div className="space-y-3">
-            {history.length > 0 ? (
-              history.map((h) => (
-                <div key={h.id} className="bg-gray-100 p-3 rounded text-sm">
-                  <div className="font-medium">{stateLabels[h.state as BoxState]}</div>
-                  <div className="text-xs text-gray-600">
-                    {new Date(h.createdAt).toLocaleString()}
+            <div className="space-y-3">
+              {history.length > 0 ? (
+                history.map((h) => (
+                  <div key={h.id} className="bg-slate-700 border border-slate-600 p-4 rounded-lg">
+                    <div className="font-medium text-slate-50">{stateLabels[h.state as BoxState]}</div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {new Date(h.createdAt).toLocaleString()}
+                    </div>
+                    {h.notes && <div className="mt-2 text-slate-300 text-sm">{h.notes}</div>}
+                    {h.condition && (
+                      <div className="text-xs font-medium text-slate-400 mt-1">
+                        Condition: {h.condition}
+                      </div>
+                    )}
                   </div>
-                  {h.notes && <div className="mt-1 text-gray-700">{h.notes}</div>}
-                  {h.condition && <div className="text-xs font-medium">Condition: {h.condition}</div>}
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 text-sm">No history available</div>
-            )}
+                ))
+              ) : (
+                <div className="text-slate-400 text-sm">No history available</div>
+              )}
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Mobile overlay when details open */}
+      {selectedBox && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"
+          onClick={() => setSelectedBox(null)}
+        />
       )}
     </>
   );

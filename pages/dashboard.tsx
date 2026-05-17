@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Dashboard from '@/components/Dashboard';
+import Layout from '@/components/Layout';
 import { Project } from '@/types';
 
 export default function DashboardPage() {
@@ -34,39 +35,36 @@ export default function DashboardPage() {
   }
 
   if (status === 'loading') {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">Loading...</div>
+      </Layout>
+    );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <header className="bg-white p-4 shadow">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex gap-4">
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="px-3 py-2 border rounded"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => router.push('/scanner')}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Scanner
-            </button>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">Dashboard</h1>
+            <p className="text-slate-400 mt-1">Track your box inventory in real-time</p>
           </div>
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="px-4 py-2 bg-slate-800 border border-slate-600 text-slate-50 rounded-lg hover:border-slate-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </div>
-      </header>
 
-      <main className="flex-1 p-4">
         {selectedProjectId && <Dashboard projectId={selectedProjectId} />}
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 }

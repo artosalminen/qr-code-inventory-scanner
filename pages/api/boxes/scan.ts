@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { isValidTransition, getTargetState } from '@/lib/state-machine';
 import { broadcastBoxStateChanged } from '@/lib/broadcast';
 import { ScanPayload, ScanAction, BoxState } from '@/types';

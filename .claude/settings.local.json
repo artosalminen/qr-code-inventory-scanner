@@ -44,7 +44,32 @@
       "Bash(xargs grep -h '\"name\":\"Bash\"')",
       "Skill(superpowers:executing-plans)",
       "Skill(superpowers:finishing-a-development-branch)",
-      "Bash(taskkill /PID 60360 /F)"
+      "Bash(taskkill /PID 60360 /F)",
+      "Bash(xargs kill -9)",
+      "Bash(PORT=3002 npm run dev)",
+      "Bash(curl -s http://localhost:3002)",
+      "Bash(curl -v http://localhost:3002)",
+      "Bash(taskkill /PID 50408 /F)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s -I http://localhost:3000)",
+      "Bash(curl *)",
+      "Bash(git remote *)",
+      "WebFetch(domain:www.prisma.io)",
+      "Bash(dir *)",
+      "Bash(git push *)",
+      "Bash(gh repo *)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Bash(git ls-remote *)",
+      "Skill(superpowers:systematic-debugging)",
+      "Bash(DATABASE_URL=\"postgres://5f49dbc0ea0dc0cd8693ed2c53c267e9aeff809282540ff40b2eb72a8313eb32:sk_MMAiGPwdTdP736jXvfnCG@db.prisma.io:5432/postgres?sslmode=require\" npx prisma migrate dev --name init)",
+      "Bash(DATABASE_URL=\"postgres://5f49dbc0ea0dc0cd8693ed2c53c267e9aeff809282540ff40b2eb72a8313eb32:sk_MMAiGPwdTdP736jXvfnCG@db.prisma.io:5432/postgres?sslmode=require\" timeout 10 npm run dev)",
+      "Bash(PowerShell -Command \"Remove-Item '.next' -Recurse -Force -ErrorAction SilentlyContinue; Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host 'Cache cleared and processes stopped'\")",
+      "Bash(pkill -f \"npm run dev\")",
+      "WebFetch(domain:authjs.dev)",
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
+      "Bash(xargs grep -l -i \"admin\")"
     ]
   }
 }

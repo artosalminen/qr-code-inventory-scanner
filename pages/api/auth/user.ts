@@ -1,7 +1,7 @@
 // src/pages/api/auth/user.ts
 import { NextApiResponse } from 'next';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 
 export default async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

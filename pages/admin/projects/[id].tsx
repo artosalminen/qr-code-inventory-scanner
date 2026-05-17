@@ -1,7 +1,26 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Project, ProjectUser, User } from '@/types';
+import Layout from '@/components/Layout';
+import { Project, ProjectUser, User, Box, BoxState } from '@/types';
+
+interface BoxWithState extends Box {
+  stateHistory?: Array<{ state: BoxState }>;
+}
+
+const stateOptions = [
+  { value: 'received', label: 'Received' },
+  { value: 'in_use', label: 'In Use' },
+  { value: 'ready_for_checkout', label: 'Ready for Checkout' },
+  { value: 'departed', label: 'Departed' },
+] as const;
+
+const roleOptions = [
+  { value: 'read_only', label: 'Read-only' },
+  { value: 'installation', label: 'Installation' },
+  { value: 'inventory_management', label: 'Inventory Mgmt' },
+  { value: 'admin', label: 'Admin' },
+] as const;
 
 export default function ProjectManagement() {
   const router = useRouter();
@@ -9,9 +28,31 @@ export default function ProjectManagement() {
   const [project, setProject] = useState<Project | null>(null);
   const [projectUsers, setProjectUsers] = useState<ProjectUser[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [boxes, setBoxes] = useState<BoxWithState[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // User assignment
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRole, setSelectedRole] = useState('read_only');
   const [loading, setLoading] = useState(false);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+
+  // Add single box
+  const [showAddBox, setShowAddBox] = useState(false);
+  const [boxQrCode, setBoxQrCode] = useState('');
+  const [boxLabel, setBoxLabel] = useState('');
+  const [boxDescription, setBoxDescription] = useState('');
+  const [addingBox, setAddingBox] = useState(false);
+
+  // CSV upload
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [uploadingCsv, setUploadingCsv] = useState(false);
+
+  // State override
+  const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
+  const [newState, setNewState] = useState<BoxState>('received');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overridingState, setOverridingState] = useState(false);
 
   useEffect(() => {
     if (typeof id === 'string') {
@@ -25,13 +66,21 @@ export default function ProjectManagement() {
       setProject(projectRes.data);
       setProjectUsers(projectRes.data.projectUsers || []);
 
-      // Try to fetch all users (may not exist yet)
+      const currentUserRole = projectRes.data.projectUsers?.[0]?.role;
+      setUserRole(currentUserRole);
+
       try {
         const usersRes = await axios.get('/api/users');
         setUsers(usersRes.data);
       } catch (e) {
-        // Endpoint may not exist yet, use empty list
         setUsers([]);
+      }
+
+      try {
+        const boxesRes = await axios.get(`/api/projects/${id}/boxes`);
+        setBoxes(boxesRes.data);
+      } catch (e) {
+        console.error('Failed to fetch boxes:', e);
       }
     } catch (error) {
       console.error('Failed to fetch project data:', error);
@@ -40,16 +89,18 @@ export default function ProjectManagement() {
 
   async function assignUser() {
     if (!selectedUserId || !id) return;
-
     setLoading(true);
+    setAssignmentError(null);
     try {
-      const { data } = await axios.post(`/api/projects/${id}/users`, {
+      await axios.post(`/api/projects/${id}/users`, {
         userId: selectedUserId,
         role: selectedRole,
       });
-      setProjectUsers([...projectUsers, data]);
       setSelectedUserId('');
-    } catch (error) {
+      fetchProjectData();
+    } catch (error: any) {
+      const message = error.response?.data?.error || 'Failed to assign user';
+      setAssignmentError(message);
       console.error('Failed to assign user:', error);
     } finally {
       setLoading(false);
@@ -59,83 +110,334 @@ export default function ProjectManagement() {
   async function removeUser(userId: string) {
     try {
       await axios.delete(`/api/projects/${id}/users/${userId}`);
-      setProjectUsers(projectUsers.filter((u) => u.userId !== userId));
+      fetchProjectData();
     } catch (error) {
       console.error('Failed to remove user:', error);
     }
   }
 
+  async function addBox() {
+    if (!boxQrCode.trim() || !id) return;
+    setAddingBox(true);
+    try {
+      await axios.post(`/api/projects/${id}/boxes`, {
+        qrCode: boxQrCode,
+        label: boxLabel,
+        description: boxDescription,
+      });
+      setBoxQrCode('');
+      setBoxLabel('');
+      setBoxDescription('');
+      setShowAddBox(false);
+      fetchProjectData();
+    } catch (error) {
+      console.error('Failed to add box:', error);
+    } finally {
+      setAddingBox(false);
+    }
+  }
+
+  async function uploadCsv() {
+    if (!csvFile || !id) return;
+    setUploadingCsv(true);
+    const formData = new FormData();
+    formData.append('file', csvFile);
+    try {
+      await axios.post(`/api/projects/${id}/csv-upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setCsvFile(null);
+      fetchProjectData();
+    } catch (error) {
+      console.error('Failed to upload CSV:', error);
+    } finally {
+      setUploadingCsv(false);
+    }
+  }
+
+  async function overrideBoxState(boxId: string) {
+    if (!newState || !overrideReason.trim() || !id) return;
+    setOverridingState(true);
+    try {
+      await axios.post(`/api/boxes/${boxId}/state-override`, {
+        newState,
+        reason: overrideReason,
+      });
+      setSelectedBoxId(null);
+      setOverrideReason('');
+      setNewState('received');
+      fetchProjectData();
+    } catch (error) {
+      console.error('Failed to override state:', error);
+    } finally {
+      setOverridingState(false);
+    }
+  }
+
+  const canManageBoxes = userRole && ['admin', 'inventory_management'].includes(userRole);
+  const isAdmin = userRole === 'admin';
+
   if (!project)
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin text-3xl mb-4">⌛</div>
+            <p className="text-slate-400">Loading project...</p>
+          </div>
+        </div>
+      </Layout>
     );
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <button
-          onClick={() => router.push('/admin')}
-          className="mb-4 px-4 py-2 text-blue-600 hover:text-blue-800"
-        >
-          ← Back to Admin
-        </button>
-
-        <h1 className="text-2xl font-bold mb-6">{project.name}</h1>
-
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-lg font-bold mb-4">Assign Users</h2>
-          <div className="flex gap-2 mb-4">
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="flex-1 px-3 py-2 border rounded"
-            >
-              <option value="">Select user...</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.email}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-3 py-2 border rounded"
-            >
-              <option value="read_only">Read-only</option>
-              <option value="installation">Installation</option>
-              <option value="inventory_management">Inventory Mgmt</option>
-              <option value="admin">Admin</option>
-            </select>
-            <button
-              onClick={assignUser}
-              disabled={loading || !selectedUserId}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Assigning...' : 'Assign'}
-            </button>
-          </div>
-          {users.length === 0 && (
-            <p className="text-sm text-gray-600">No users available. Create a project and login first.</p>
-          )}
+    <Layout>
+      <div className="space-y-8">
+        {/* Header */}
+        <div>
+          <button
+            onClick={() => router.push('/admin')}
+            className="text-blue-400 hover:text-blue-300 text-sm font-medium mb-4 flex items-center gap-1"
+          >
+            ← Back to Admin
+          </button>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{project.name}</h1>
+          <p className="text-slate-400 mt-2">Manage boxes and team members</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
+        {/* Add Box Section */}
+        {canManageBoxes && (
+          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-slate-50 mb-4">➕ Add Box</h2>
+              {!showAddBox ? (
+                <button
+                  onClick={() => setShowAddBox(true)}
+                  className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition active:scale-95"
+                >
+                  Add Single Box
+                </button>
+              ) : (
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    placeholder="QR Code *"
+                    value={boxQrCode}
+                    onChange={(e) => setBoxQrCode(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Label (optional)"
+                    value={boxLabel}
+                    onChange={(e) => setBoxLabel(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <textarea
+                    placeholder="Description (optional)"
+                    value={boxDescription}
+                    onChange={(e) => setBoxDescription(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    rows={3}
+                  />
+                  <div className="flex gap-2 flex-col sm:flex-row">
+                    <button
+                      onClick={addBox}
+                      disabled={addingBox || !boxQrCode.trim()}
+                      className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                    >
+                      {addingBox ? 'Adding...' : 'Add Box'}
+                    </button>
+                    <button
+                      onClick={() => setShowAddBox(false)}
+                      className="flex-1 sm:flex-initial px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CSV Upload */}
+        {isAdmin && (
+          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-slate-50 mb-4">📤 Upload CSV</h2>
+              <div className="space-y-4">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                />
+                <p className="text-sm text-slate-400">CSV format: qr_code, label, description</p>
+                <button
+                  onClick={uploadCsv}
+                  disabled={uploadingCsv || !csvFile}
+                  className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                >
+                  {uploadingCsv ? 'Uploading...' : 'Upload CSV'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Boxes List */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
           <div className="p-6">
-            <h2 className="text-lg font-bold mb-4">Project Users</h2>
+            <h2 className="text-xl font-bold text-slate-50 mb-4">📦 Boxes ({boxes.length})</h2>
+            {boxes.length > 0 ? (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                {boxes.map((box) => {
+                  const currentState = box.stateHistory?.[0]?.state || 'received';
+                  return (
+                    <div key={box.id} className="bg-slate-700 border border-slate-600 rounded-lg p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-slate-50 truncate">{box.qrCode}</div>
+                          {box.label && (
+                            <div className="text-sm text-slate-400 truncate">{box.label}</div>
+                          )}
+                          <div className="mt-2 inline-block">
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-600 text-slate-200 capitalize">
+                              {currentState}
+                            </span>
+                          </div>
+                        </div>
+                        {canManageBoxes && (
+                          <button
+                            onClick={() => setSelectedBoxId(box.id)}
+                            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition active:scale-95"
+                          >
+                            Change State
+                          </button>
+                        )}
+                      </div>
+
+                      {selectedBoxId === box.id && (
+                        <div className="mt-4 pt-4 border-t border-slate-600 space-y-3">
+                          <select
+                            value={newState}
+                            onChange={(e) => setNewState(e.target.value as BoxState)}
+                            className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          >
+                            {stateOptions.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <textarea
+                            placeholder="Reason for change *"
+                            value={overrideReason}
+                            onChange={(e) => setOverrideReason(e.target.value)}
+                            className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                            rows={3}
+                          />
+                          <div className="flex gap-2 flex-col sm:flex-row">
+                            <button
+                              onClick={() => overrideBoxState(box.id)}
+                              disabled={overridingState || !overrideReason.trim()}
+                              className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                            >
+                              {overridingState ? 'Updating...' : 'Confirm Change'}
+                            </button>
+                            <button
+                              onClick={() => setSelectedBoxId(null)}
+                              className="flex-1 sm:flex-initial px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-slate-400">No boxes in this project yet.</p>
+            )}
+          </div>
+        </div>
+
+        {/* User Management */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-slate-50 mb-4">👥 Assign Users</h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select user...</option>
+                  {users
+                    .filter((u) => !projectUsers.find((pu) => pu.userId === u.id))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.email}
+                      </option>
+                    ))}
+                </select>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {roleOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={assignUser}
+                disabled={loading || !selectedUserId}
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+              >
+                {loading ? 'Assigning...' : 'Assign User'}
+              </button>
+              {assignmentError && (
+                <p className="text-sm text-red-400 bg-red-950 border border-red-800 p-3 rounded-lg">
+                  {assignmentError}
+                </p>
+              )}
+              {users.length === 0 && (
+                <p className="text-sm text-slate-400">
+                  No users available. Create a project and login first.
+                </p>
+              )}
+              {projectUsers.length > 0 &&
+                users.filter((u) => !projectUsers.find((pu) => pu.userId === u.id)).length === 0 && (
+                  <p className="text-sm text-slate-400">
+                    All available users are already assigned to this project.
+                  </p>
+                )}
+            </div>
+          </div>
+        </div>
+
+        {/* Project Users */}
+        <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-xl font-bold text-slate-50 mb-4">Team Members</h2>
             {projectUsers.length > 0 ? (
               <div className="space-y-2">
                 {projectUsers.map((pu) => (
-                  <div key={pu.id} className="flex items-center justify-between p-3 bg-gray-100 rounded">
-                    <div>
-                      <div className="font-medium">{pu.userId}</div>
-                      <div className="text-sm text-gray-600">{pu.role}</div>
+                  <div key={pu.id} className="flex items-center justify-between p-4 bg-slate-700 rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-slate-50 truncate">{pu.userId}</div>
+                      <div className="text-sm text-slate-400 capitalize">{pu.role}</div>
                     </div>
                     <button
                       onClick={() => removeUser(pu.userId)}
-                      className="text-red-600 hover:text-red-800 font-medium"
+                      className="ml-4 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-900 hover:bg-opacity-20 rounded-lg font-medium transition text-sm"
                     >
                       Remove
                     </button>
@@ -143,11 +445,11 @@ export default function ProjectManagement() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600">No users assigned to this project yet.</p>
+              <p className="text-slate-400">No users assigned to this project yet.</p>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

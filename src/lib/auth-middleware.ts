@@ -1,6 +1,6 @@
 // src/lib/auth-middleware.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from './db';
+import prisma from './db';
 import { getSessionUser } from './session';
 import { UserRole } from '@/types';
 

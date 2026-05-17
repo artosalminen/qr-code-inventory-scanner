@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { NextApiResponse } from 'next';
-import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
+import { getCurrentUser } from '@/lib/session';
 
 export async function GET(req: NextRequest) {
-  const authenticatedReq = req as unknown as AuthenticatedRequest;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dummyRes = {} as any as NextApiResponse;
-  await withAuth(authenticatedReq, dummyRes);
-
-  if (!authenticatedReq.userId) {
+  const user = await getCurrentUser();
+  if (!user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { email: user.email },
+  });
+
+  if (!dbUser) {
+    return NextResponse.json({ error: 'User not found' }, { status: 401 });
   }
 
   const status = req.nextUrl.searchParams.get('status') || 'active';
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
       where: {
         projectUsers: {
           some: {
-            userId: authenticatedReq.userId,
+            userId: dbUser.id,
           },
         },
         status,
@@ -39,20 +42,24 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const authenticatedReq = req as unknown as AuthenticatedRequest;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dummyRes = {} as any as NextApiResponse;
-  await withAuth(authenticatedReq, dummyRes);
-
-  if (!authenticatedReq.userId) {
+  const user = await getCurrentUser();
+  if (!user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { email: user.email },
+  });
+
+  if (!dbUser) {
+    return NextResponse.json({ error: 'User not found' }, { status: 401 });
   }
 
   try {
     // Only admins can create projects
     const adminProject = await prisma.projectUser.findFirst({
       where: {
-        userId: authenticatedReq.userId,
+        userId: dbUser.id,
         role: 'admin',
       },
     });
@@ -78,12 +85,12 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         description: description || null,
-        createdBy: authenticatedReq.userId,
+        createdBy: dbUser.id,
         projectUsers: {
           create: {
-            userId: authenticatedReq.userId,
+            userId: dbUser.id,
             role: 'admin',
-            assignedBy: authenticatedReq.userId,
+            assignedBy: dbUser.id,
           },
         },
       },

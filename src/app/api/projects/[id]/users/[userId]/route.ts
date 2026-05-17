@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { UserRole } from '@/types';
 
 export async function PUT(

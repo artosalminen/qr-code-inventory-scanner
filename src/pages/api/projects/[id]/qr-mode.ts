@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
-import { prisma } from '@/lib/db';
+import prisma from '@/lib/db';
 import { QRMode } from '@/types';
 
 export default async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
