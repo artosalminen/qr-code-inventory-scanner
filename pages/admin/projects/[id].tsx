@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import Layout from '@/components/Layout';
 import { Project, ProjectUser, User, Box, BoxState } from '@/types';
@@ -25,6 +26,7 @@ const roleOptions = [
 export default function ProjectManagement() {
   const router = useRouter();
   const { id } = router.query;
+  const { data: session } = useSession();
   const [project, setProject] = useState<Project | null>(null);
   const [projectUsers, setProjectUsers] = useState<ProjectUser[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -55,10 +57,10 @@ export default function ProjectManagement() {
   const [overridingState, setOverridingState] = useState(false);
 
   useEffect(() => {
-    if (typeof id === 'string') {
+    if (typeof id === 'string' && session) {
       fetchProjectData();
     }
-  }, [id]);
+  }, [id, session]);
 
   async function fetchProjectData() {
     try {
@@ -66,8 +68,13 @@ export default function ProjectManagement() {
       setProject(projectRes.data);
       setProjectUsers(projectRes.data.projectUsers || []);
 
-      const currentUserRole = projectRes.data.projectUsers?.[0]?.role;
-      setUserRole(currentUserRole);
+      // Get current user's role from session
+      if (session?.user?.email) {
+        const currentUserProject = projectRes.data.projectUsers?.find(
+          (pu: ProjectUser) => pu.userId === session.user.email,
+        );
+        setUserRole(currentUserProject?.role || null);
+      }
 
       try {
         const usersRes = await axios.get('/api/users');
