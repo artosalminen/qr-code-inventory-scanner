@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import axios from 'axios';
-import { Box, BoxState, BoxStateHistory } from '@/types';
+import { Box, BoxState, BoxStateHistory, ProjectUser } from '@/types';
 import RealtimeSync from './RealtimeSync';
 
 interface DashboardProps {
@@ -27,14 +28,25 @@ interface BoxWithState extends Box {
 }
 
 export default function Dashboard({ projectId }: DashboardProps) {
+  const { data: session } = useSession();
   const [boxes, setBoxes] = useState<BoxWithState[]>([]);
   const [selectedBox, setSelectedBox] = useState<BoxWithState | null>(null);
   const [history, setHistory] = useState<BoxStateHistory[]>([]);
   const [filterState, setFilterState] = useState<BoxState | 'all'>('all');
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // State override
+  const [showStateOverride, setShowStateOverride] = useState(false);
+  const [newState, setNewState] = useState<BoxState>('received');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overridingState, setOverridingState] = useState(false);
 
   useEffect(() => {
     fetchBoxes();
-  }, [projectId]);
+    if (session?.user?.email) {
+      fetchProjectRole();
+    }
+  }, [projectId, session]);
 
   async function fetchBoxes() {
     try {
@@ -50,13 +62,50 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
   }
 
+  async function fetchProjectRole() {
+    try {
+      const { data } = await axios.get(`/api/projects/${projectId}`);
+      const currentUserProject = data.projectUsers?.find(
+        (pu: ProjectUser) => pu.userId === session?.user?.email,
+      );
+      setUserRole(currentUserProject?.role || null);
+    } catch (error) {
+      console.error('Failed to fetch project role:', error);
+    }
+  }
+
   async function handleSelectBox(box: BoxWithState) {
     setSelectedBox(box);
+    setShowStateOverride(false);
+    setNewState('received');
+    setOverrideReason('');
     try {
       const { data } = await axios.get(`/api/boxes/${box.id}`);
       setHistory(data.stateHistory || []);
     } catch (error) {
       console.error('Failed to fetch box history:', error);
+    }
+  }
+
+  async function overrideBoxState() {
+    if (!selectedBox || !newState || !overrideReason.trim()) return;
+    setOverridingState(true);
+    try {
+      await axios.post(`/api/boxes/${selectedBox.id}/state-override`, {
+        newState,
+        reason: overrideReason,
+      });
+      setShowStateOverride(false);
+      setOverrideReason('');
+      setNewState('received');
+      fetchBoxes();
+      if (selectedBox) {
+        handleSelectBox(selectedBox);
+      }
+    } catch (error) {
+      console.error('Failed to override state:', error);
+    } finally {
+      setOverridingState(false);
     }
   }
 
@@ -172,25 +221,69 @@ export default function Dashboard({ projectId }: DashboardProps) {
               </button>
             </div>
 
-            <div className="space-y-3">
-              {history.length > 0 ? (
-                history.map((h) => (
-                  <div key={h.id} className="bg-slate-700 border border-slate-600 p-4 rounded-lg">
-                    <div className="font-medium text-slate-50">{stateLabels[h.state as BoxState]}</div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      {new Date(h.createdAt).toLocaleString()}
-                    </div>
-                    {h.notes && <div className="mt-2 text-slate-300 text-sm">{h.notes}</div>}
-                    {h.condition && (
-                      <div className="text-xs font-medium text-slate-400 mt-1">
-                        Condition: {h.condition}
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-slate-400 text-sm">No history available</div>
+            <div className="space-y-4">
+              {/* State Change Button */}
+              {userRole && ['admin', 'inventory_management'].includes(userRole) && (
+                <button
+                  onClick={() => setShowStateOverride(!showStateOverride)}
+                  className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition"
+                >
+                  {showStateOverride ? 'Cancel' : '🔄 Change State'}
+                </button>
               )}
+
+              {/* State Override Form */}
+              {showStateOverride && (
+                <div className="bg-slate-700 border border-slate-600 p-4 rounded-lg space-y-3">
+                  <select
+                    value={newState}
+                    onChange={(e) => setNewState(e.target.value as BoxState)}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="received">Received</option>
+                    <option value="in_use">In Use</option>
+                    <option value="ready_for_checkout">Ready for Checkout</option>
+                    <option value="departed">Departed</option>
+                  </select>
+                  <textarea
+                    placeholder="Reason for change *"
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                    rows={2}
+                  />
+                  <button
+                    onClick={overrideBoxState}
+                    disabled={overridingState || !overrideReason.trim()}
+                    className="w-full px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                  >
+                    {overridingState ? 'Updating...' : 'Confirm Change'}
+                  </button>
+                </div>
+              )}
+
+              {/* History */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-slate-200 text-sm">State History</h4>
+                {history.length > 0 ? (
+                  history.map((h) => (
+                    <div key={h.id} className="bg-slate-700 border border-slate-600 p-4 rounded-lg">
+                      <div className="font-medium text-slate-50">{stateLabels[h.state as BoxState]}</div>
+                      <div className="text-xs text-slate-400 mt-1">
+                        {new Date(h.createdAt).toLocaleString()}
+                      </div>
+                      {h.notes && <div className="mt-2 text-slate-300 text-sm">{h.notes}</div>}
+                      {h.condition && (
+                        <div className="text-xs font-medium text-slate-400 mt-1">
+                          Condition: {h.condition}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-400 text-sm">No history available</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
