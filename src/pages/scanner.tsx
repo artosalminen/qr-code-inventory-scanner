@@ -1,6 +1,6 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Layout from '@/components/Layout';
 import QRScanner from '@/components/QRScanner';
@@ -55,6 +55,11 @@ export default function ScannerPage() {
   const [isAddingBox, setIsAddingBox] = useState(false);
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const [pendingScanQr, setPendingScanQr] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<(File | null)[]>([null, null, null]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<(string | null)[]>([null, null, null]);
+  const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [uploadWarning, setUploadWarning] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/');
@@ -124,6 +129,33 @@ export default function ScannerPage() {
         condition,
         notes,
       });
+
+      const filesToUpload = pendingImages.filter((f): f is File => f !== null);
+      if (filesToUpload.length > 0 && data.historyId) {
+        try {
+          const uploadedUrls: string[] = [];
+          for (const file of filesToUpload) {
+            const params = new URLSearchParams({
+              filename: file.name,
+              historyId: data.historyId,
+              projectId: selectedProjectId,
+              boxId: data.box.id,
+            });
+            const uploadRes = await axios.post(
+              `/api/images/upload?${params}`,
+              file,
+              { headers: { 'Content-Type': file.type || 'application/octet-stream' } },
+            );
+            uploadedUrls.push(uploadRes.data.url);
+          }
+          await axios.patch(`/api/boxes/history/${data.historyId}/images`, {
+            imageUrls: uploadedUrls,
+          });
+        } catch {
+          setUploadWarning(t('photoUploadFailed'));
+        }
+      }
+
       setLastMessage(`${data.box.label || 'Box'} — ${tStates(data.newState)}`);
       setLastMessageType('success');
       setScanHistory((prev) =>
@@ -140,6 +172,7 @@ export default function ScannerPage() {
       setPendingScanQr(null);
       setNotes('');
       setCondition('ok');
+      resetImages();
       setTimeout(() => setScannerOpen(true), 1500);
     } catch (error: any) {
       const isNotFound = error.response?.status === 404;
@@ -162,6 +195,7 @@ export default function ScannerPage() {
     setCondition('ok');
     setNotes('');
     setLastMessage('');
+    resetImages();
     setAddBoxFormOpen(false);
     setScannerOpen(true);
   }
@@ -199,6 +233,42 @@ export default function ScannerPage() {
     } finally {
       setIsAddingBox(false);
     }
+  }
+
+  function resetImages() {
+    imagePreviewUrls.forEach((url) => { if (url) URL.revokeObjectURL(url); });
+    setPendingImages([null, null, null]);
+    setImagePreviewUrls([null, null, null]);
+    setUploadWarning('');
+  }
+
+  function handleSlotClick(slotIndex: number) {
+    setActiveSlot(slotIndex);
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || activeSlot === null) return;
+    const newImages = [...pendingImages];
+    newImages[activeSlot] = file;
+    setPendingImages(newImages);
+    const newPreviews = [...imagePreviewUrls];
+    if (newPreviews[activeSlot]) URL.revokeObjectURL(newPreviews[activeSlot]!);
+    newPreviews[activeSlot] = URL.createObjectURL(file);
+    setImagePreviewUrls(newPreviews);
+    e.target.value = '';
+    setActiveSlot(null);
+  }
+
+  function handleRemoveImage(slotIndex: number) {
+    const newImages = [...pendingImages];
+    const newPreviews = [...imagePreviewUrls];
+    if (newPreviews[slotIndex]) URL.revokeObjectURL(newPreviews[slotIndex]!);
+    newImages[slotIndex] = null;
+    newPreviews[slotIndex] = null;
+    setPendingImages(newImages);
+    setImagePreviewUrls(newPreviews);
   }
 
   if (status === 'loading') {
@@ -332,6 +402,53 @@ export default function ScannerPage() {
                   placeholder={t('notesPlaceholder')}
                 />
               </div>
+
+              <div>
+                <label className="block text-slate-200 font-semibold mb-3">
+                  {t('photosOptional')}
+                </label>
+                <div className="flex gap-3">
+                  {[0, 1, 2].map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() =>
+                        imagePreviewUrls[slot]
+                          ? handleRemoveImage(slot)
+                          : handleSlotClick(slot)
+                      }
+                      className="relative w-20 h-20 rounded-lg border-2 border-dashed border-slate-500 flex items-center justify-center overflow-hidden bg-slate-700 hover:border-slate-400 transition"
+                    >
+                      {imagePreviewUrls[slot] ? (
+                        <>
+                          <img
+                            src={imagePreviewUrls[slot]!}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute top-0 right-0 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-bl">
+                            ✕
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-2xl text-slate-400">+</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {uploadWarning && (
+                  <p className="text-xs text-amber-400 mt-2">{uploadWarning}</p>
+                )}
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileChange}
+              />
 
               {addBoxFormOpen && addBoxForm}
 

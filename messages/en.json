@@ -87,7 +87,9 @@
     "checkOut": "Check Out",
     "scanFailed": "Scan failed",
     "addBoxFailed": "Failed to add box",
-    "boxAdded": "Box \"{qr}\" added and checked in"
+    "boxAdded": "Box \"{qr}\" added and checked in",
+    "photosOptional": "Photos (optional)",
+    "photoUploadFailed": "Scan saved. Photo upload failed."
   },
   "admin": {
     "title": "Admin Dashboard",

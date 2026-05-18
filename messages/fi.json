@@ -87,7 +87,9 @@
     "checkOut": "Kirjaa ulos",
     "scanFailed": "Skannaus epäonnistui",
     "addBoxFailed": "Laatikon lisääminen epäonnistui",
-    "boxAdded": "Laatikko \"{qr}\" lisätty ja kirjattu sisään"
+    "boxAdded": "Laatikko \"{qr}\" lisätty ja kirjattu sisään",
+    "photosOptional": "Kuvat (valinnainen)",
+    "photoUploadFailed": "Skannaus tallennettu. Kuvan lataus epäonnistui."
   },
   "admin": {
     "title": "Ylläpitopaneeli",
