@@ -5,6 +5,7 @@ import axios from 'axios';
 import Layout from '@/components/Layout';
 import QRScanner from '@/components/QRScanner';
 import { BoxState, Project, ScanAction } from '@/types';
+import { useTranslations } from 'next-intl';
 
 interface ScanHistoryEntry {
   label: string;
@@ -30,17 +31,13 @@ const stateBadgeColors: Record<BoxState, string> = {
   departed: 'bg-green-900/50 text-green-300 border border-green-700',
 };
 
-const stateLabels: Record<BoxState, string> = {
-  expected: 'Expected',
-  received: 'Received',
-  in_use: 'In Use',
-  ready_for_checkout: 'Ready',
-  departed: 'Departed',
-};
-
 export default function ScannerPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useTranslations('scanner');
+  const tCommon = useTranslations('common');
+  const tStates = useTranslations('states');
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [scanMode, setScanMode] = useState<ScanAction>('check_in');
@@ -60,19 +57,13 @@ export default function ScannerPage() {
   const [pendingScanQr, setPendingScanQr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/');
-    }
+    if (status === 'unauthenticated') router.push('/');
   }, [status, router]);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  useEffect(() => { fetchProjects(); }, []);
 
   useEffect(() => {
-    if (selectedProjectId) {
-      fetchProjectRole(selectedProjectId);
-    }
+    if (selectedProjectId) fetchProjectRole(selectedProjectId);
   }, [selectedProjectId, session]);
 
   useEffect(() => {
@@ -100,9 +91,7 @@ export default function ScannerPage() {
     try {
       const { data } = await axios.get('/api/projects');
       setProjects(data);
-      if (data.length > 0) {
-        setSelectedProjectId(data[0].id);
-      }
+      if (data.length > 0) setSelectedProjectId(data[0].id);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     }
@@ -126,7 +115,7 @@ export default function ScannerPage() {
         condition,
         notes,
       });
-      setLastMessage(`${data.box.label || 'Box'} — ${data.newState}`);
+      setLastMessage(`${data.box.label || 'Box'} — ${tStates(data.newState)}`);
       setLastMessageType('success');
       setScanHistory((prev) =>
         [
@@ -151,7 +140,7 @@ export default function ScannerPage() {
         setAddBoxLabel('');
         setAddBoxError('');
       } else {
-        setLastMessage(error.response?.data?.error || 'Scan failed');
+        setLastMessage(error.response?.data?.error || t('scanFailed'));
         setLastMessageType('error');
       }
     } finally {
@@ -179,7 +168,7 @@ export default function ScannerPage() {
         condition,
         notes: notes || undefined,
       });
-      setLastMessage(`Box "${addBoxQr.trim()}" added and checked in`);
+      setLastMessage(t('boxAdded', { qr: addBoxQr.trim() }));
       setLastMessageType('success');
       setAddBoxFormOpen(false);
       setAddBoxQr('');
@@ -197,7 +186,7 @@ export default function ScannerPage() {
         ].slice(0, 5),
       );
     } catch (error: any) {
-      setAddBoxError(error.response?.data?.error || 'Failed to add box');
+      setAddBoxError(error.response?.data?.error || t('addBoxFailed'));
     } finally {
       setIsAddingBox(false);
     }
@@ -209,7 +198,7 @@ export default function ScannerPage() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin text-3xl mb-4">⌛</div>
-            <p className="text-slate-400">Loading...</p>
+            <p className="text-slate-400">{tCommon('loading')}</p>
           </div>
         </div>
       </Layout>
@@ -217,24 +206,49 @@ export default function ScannerPage() {
   }
 
   const canAddBoxes =
-    scanMode === 'check_in' &&
-    ['admin', 'inventory_management'].includes(userRole ?? '');
+    scanMode === 'check_in' && ['admin', 'inventory_management'].includes(userRole ?? '');
 
   const scanModes: { value: ScanAction; label: string; icon: string }[] = [
-    { value: 'check_in', label: 'Check In', icon: '📥' },
-    { value: 'activate', label: 'Activate', icon: '⚡' },
-    { value: 'return', label: 'Return', icon: '↩️' },
-    { value: 'check_out', label: 'Check Out', icon: '📤' },
+    { value: 'check_in', label: t('checkIn'), icon: '📥' },
+    { value: 'activate', label: t('activate'), icon: '⚡' },
+    { value: 'return', label: t('return'), icon: '↩️' },
+    { value: 'check_out', label: t('checkOut'), icon: '📤' },
   ];
+
+  const addBoxForm = (
+    <div className="bg-slate-700 border border-green-600 rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="font-semibold text-slate-50">{t('addNewBox')}</h3>
+        <button onClick={() => setAddBoxFormOpen(false)} className="text-slate-400 hover:text-slate-200 transition">✕</button>
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-1">{t('qrCodeRequired')}</label>
+        <input type="text" value={addBoxQr} onChange={(e) => setAddBoxQr(e.target.value)} placeholder={t('qrCodePlaceholder')} className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-slate-400 mb-1">{t('descriptionOptional')}</label>
+        <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder={t('descriptionPlaceholder')} className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+      </div>
+      <div className="text-xs text-slate-400 bg-slate-600 rounded-lg px-3 py-2">
+        {tCommon('condition')}: <span className="text-slate-200 font-medium">
+          {condition === 'ok' ? tCommon('conditionOk') : tCommon('conditionDamaged')}
+        </span>
+        {notes && <> · {notes}</>}
+      </div>
+      {addBoxError && <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">{addBoxError}</p>}
+      <button onClick={handleAddBox} disabled={isAddingBox || !addBoxQr.trim()} className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95">
+        {isAddingBox ? tCommon('adding') : t('addAndCheckIn')}
+      </button>
+    </div>
+  );
 
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">Scanner</h1>
-            <p className="text-slate-400 mt-1">Scan QR codes to manage box state</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{t('title')}</h1>
+            <p className="text-slate-400 mt-1">{t('subtitle')}</p>
           </div>
           <select
             value={selectedProjectId}
@@ -242,33 +256,27 @@ export default function ScannerPage() {
             className="px-4 py-3 bg-slate-800 border border-slate-600 text-slate-50 rounded-lg hover:border-slate-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
           >
             {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>
 
-        {/* Success message shown after confirm (card has dismissed) */}
         {lastMessage && !pendingScanQr && (
-          <div
-            className={`p-4 rounded-lg font-semibold flex items-center gap-3 transition ${
-              lastMessageType === 'success'
-                ? 'bg-green-900 border border-green-600 text-green-200'
-                : 'bg-red-900 border border-red-600 text-red-200'
-            }`}
-          >
+          <div className={`p-4 rounded-lg font-semibold flex items-center gap-3 transition ${
+            lastMessageType === 'success'
+              ? 'bg-green-900 border border-green-600 text-green-200'
+              : 'bg-red-900 border border-red-600 text-red-200'
+          }`}>
             <span className="text-2xl">{lastMessageType === 'success' ? '✓' : '✗'}</span>
             <span>{lastMessage}</span>
           </div>
         )}
 
         {pendingScanQr !== null ? (
-          /* Confirmation Card — shown after scan, before API call */
           <div className="bg-slate-800 border border-blue-600 rounded-lg overflow-hidden">
             <div className="p-6 space-y-5">
               <div>
-                <h2 className="text-lg font-bold text-slate-50 mb-1">Confirm Scan</h2>
+                <h2 className="text-lg font-bold text-slate-50 mb-1">{t('confirmScan')}</h2>
                 <p className="text-slate-400 text-sm">
                   {scanModes.find((m) => m.value === scanMode)?.icon}{' '}
                   {scanModes.find((m) => m.value === scanMode)?.label}
@@ -276,17 +284,17 @@ export default function ScannerPage() {
               </div>
 
               <div className="bg-slate-700 rounded-lg px-4 py-3">
-                <div className="text-xs text-slate-400 mb-1">QR Code</div>
+                <div className="text-xs text-slate-400 mb-1">{t('qrCode')}</div>
                 <div className="font-mono text-slate-50 text-sm break-all">{pendingScanQr}</div>
               </div>
 
               {['check_in', 'check_out'].includes(scanMode) && (
                 <div>
-                  <label className="block text-slate-200 font-semibold mb-3">Item Condition</label>
+                  <label className="block text-slate-200 font-semibold mb-3">{t('itemCondition')}</label>
                   <div className="flex gap-3">
                     {[
-                      { value: 'ok', label: '✓ OK', icon: '👍' },
-                      { value: 'damaged', label: '⚠️ Damaged', icon: '🔧' },
+                      { value: 'ok', label: tCommon('conditionOk'), icon: '👍' },
+                      { value: 'damaged', label: tCommon('conditionDamaged'), icon: '🔧' },
                     ].map((opt) => (
                       <button
                         key={opt.value}
@@ -306,43 +314,18 @@ export default function ScannerPage() {
               )}
 
               <div>
-                <label className="block text-slate-200 font-semibold mb-3">Notes (Optional)</label>
+                <label className="block text-slate-200 font-semibold mb-3">{t('notesOptional')}</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   rows={3}
-                  placeholder="Add any notes about this scan..."
+                  placeholder={t('notesPlaceholder')}
                 />
               </div>
 
-              {/* Add box form — shown when QR not found in check_in mode */}
-              {addBoxFormOpen && (
-                <div className="bg-slate-700 border border-green-600 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-slate-50">Add New Box</h3>
-                    <button onClick={() => setAddBoxFormOpen(false)} className="text-slate-400 hover:text-slate-200 transition">✕</button>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">QR Code *</label>
-                    <input type="text" value={addBoxQr} onChange={(e) => setAddBoxQr(e.target.value)} placeholder="QR code..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Description (optional)</label>
-                    <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder="Human-readable description..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-                  </div>
-                  <div className="text-xs text-slate-400 bg-slate-600 rounded-lg px-3 py-2">
-                    Condition: <span className="text-slate-200 font-medium capitalize">{condition}</span>
-                    {notes && <> · Notes: <span className="text-slate-200 font-medium">{notes}</span></>}
-                  </div>
-                  {addBoxError && <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">{addBoxError}</p>}
-                  <button onClick={handleAddBox} disabled={isAddingBox || !addBoxQr.trim()} className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95">
-                    {isAddingBox ? 'Adding...' : 'Add & Check In'}
-                  </button>
-                </div>
-              )}
+              {addBoxFormOpen && addBoxForm}
 
-              {/* Inline error */}
               {lastMessage && lastMessageType === 'error' && (
                 <div className="p-4 rounded-lg font-semibold flex items-center gap-3 bg-red-900 border border-red-600 text-red-200">
                   <span className="text-2xl">✗</span>
@@ -355,25 +338,23 @@ export default function ScannerPage() {
                   onClick={handleRescan}
                   className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition"
                 >
-                  Re-scan
+                  {t('rescan')}
                 </button>
                 <button
                   onClick={handleConfirmScan}
                   disabled={isProcessing || addBoxFormOpen}
                   className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95"
                 >
-                  {isProcessing ? 'Processing...' : 'Confirm'}
+                  {isProcessing ? tCommon('processing') : tCommon('confirm')}
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          /* Main Scanner Card */
           <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
             <div className="p-6 space-y-6">
-              {/* Scan Mode Selection */}
               <div>
-                <label className="block text-slate-200 font-semibold mb-3">Scan Mode</label>
+                <label className="block text-slate-200 font-semibold mb-3">{t('scanMode')}</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {scanModes.map((mode) => (
                     <button
@@ -392,14 +373,12 @@ export default function ScannerPage() {
                 </div>
               </div>
 
-              {/* QR Scanner Component */}
               {scannerOpen && (
                 <div className="rounded-lg overflow-hidden border-2 border-blue-500">
                   <QRScanner isOpen={scannerOpen} onScan={handleScan} />
                 </div>
               )}
 
-              {/* Scanner Toggle Button */}
               <button
                 onClick={() => setScannerOpen(!scannerOpen)}
                 disabled={isProcessing}
@@ -409,56 +388,33 @@ export default function ScannerPage() {
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {scannerOpen ? <><span>✕</span> Close Scanner</> : <><span>📱</span> Open Scanner</>}
+                {scannerOpen
+                  ? <><span>✕</span> {t('closeScanner')}</>
+                  : <><span>📱</span> {t('openScanner')}</>}
               </button>
 
-              {/* Manual Add Box Button */}
               {canAddBoxes && !addBoxFormOpen && (
                 <button
                   onClick={() => { setAddBoxFormOpen(true); setAddBoxQr(''); setAddBoxLabel(''); setAddBoxError(''); }}
                   className="w-full px-4 py-3 bg-slate-700 hover:bg-slate-600 border border-dashed border-slate-500 text-slate-300 rounded-lg font-medium transition flex items-center justify-center gap-2"
                 >
-                  <span>➕</span> Add Box Manually
+                  <span>➕</span> {t('addBoxManually')}
                 </button>
               )}
 
-              {/* Manual add box form */}
-              {addBoxFormOpen && (
-                <div className="bg-slate-700 border border-green-600 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-semibold text-slate-50">Add New Box</h3>
-                    <button onClick={() => setAddBoxFormOpen(false)} className="text-slate-400 hover:text-slate-200 transition">✕</button>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">QR Code *</label>
-                    <input type="text" value={addBoxQr} onChange={(e) => setAddBoxQr(e.target.value)} placeholder="QR code..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Description (optional)</label>
-                    <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder="Human-readable description..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
-                  </div>
-                  <div className="text-xs text-slate-400 bg-slate-600 rounded-lg px-3 py-2">
-                    Condition: <span className="text-slate-200 font-medium">OK</span>
-                  </div>
-                  {addBoxError && <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">{addBoxError}</p>}
-                  <button onClick={handleAddBox} disabled={isAddingBox || !addBoxQr.trim()} className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95">
-                    {isAddingBox ? 'Adding...' : 'Add & Check In'}
-                  </button>
-                </div>
-              )}
+              {addBoxFormOpen && addBoxForm}
 
-              {/* Touch Hint for Mobile */}
               <div className="text-center text-xs text-slate-400 bg-slate-700 rounded-lg p-3">
-                💡 Position the camera to scan QR codes
+                💡 {t('positionCamera')}
               </div>
             </div>
           </div>
         )}
-        {/* Scan History */}
+
         {scanHistory.length > 0 && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-700">
-              <h2 className="font-semibold text-slate-200 text-sm">Recent Scans</h2>
+              <h2 className="font-semibold text-slate-200 text-sm">{t('recentScans')}</h2>
             </div>
             <div className="divide-y divide-slate-700">
               {scanHistory.map((entry, i) => (
@@ -469,7 +425,7 @@ export default function ScannerPage() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${stateBadgeColors[entry.newState]}`}>
-                      {stateLabels[entry.newState]}
+                      {tStates(entry.newState)}
                     </span>
                     <span className="text-xs text-slate-500 w-16 text-right">{timeAgo(entry.timestamp)}</span>
                   </div>
