@@ -384,7 +384,7 @@ export default function ScannerPage() {
                       }`}
                     >
                       <span className="text-xl">{mode.icon}</span>
-                      <span className="hidden sm:inline">{mode.label}</span>
+                      <span className="text-xs">{mode.label}</span>
                     </button>
                   ))}
                 </div>
