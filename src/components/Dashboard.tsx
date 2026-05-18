@@ -9,6 +9,7 @@ interface DashboardProps {
 }
 
 const stateColors: Record<BoxState, string> = {
+  expected: 'bg-purple-900 border-purple-500 hover:bg-purple-800',
   received: 'bg-blue-900 border-blue-500 hover:bg-blue-800',
   in_use: 'bg-yellow-900 border-yellow-500 hover:bg-yellow-800',
   ready_for_checkout: 'bg-orange-900 border-orange-500 hover:bg-orange-800',
@@ -16,6 +17,7 @@ const stateColors: Record<BoxState, string> = {
 };
 
 const stateLabels: Record<BoxState, string> = {
+  expected: 'Expected',
   received: 'Received',
   in_use: 'In Use',
   ready_for_checkout: 'Ready for Checkout',
@@ -131,6 +133,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
   const stats = {
     total: boxes.length,
+    expected: boxes.filter((b) => b.currentState === 'expected').length,
     received: boxes.filter((b) => b.currentState === 'received').length,
     inUse: boxes.filter((b) => b.currentState === 'in_use').length,
     readyForCheckout: boxes.filter((b) => b.currentState === 'ready_for_checkout').length,
@@ -145,10 +148,14 @@ export default function Dashboard({ projectId }: DashboardProps) {
       <RealtimeSync projectId={projectId} onBoxStateChanged={handleBoxStateChanged} />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <div className="bg-slate-800 border border-slate-700 p-4 sm:p-6 rounded-lg">
           <div className="text-slate-400 text-xs sm:text-sm">Total</div>
           <div className="text-2xl sm:text-4xl font-bold text-slate-50 mt-2">{stats.total}</div>
+        </div>
+        <div className="bg-slate-800 border border-purple-500 p-4 sm:p-6 rounded-lg">
+          <div className="text-slate-400 text-xs sm:text-sm">Expected</div>
+          <div className="text-2xl sm:text-4xl font-bold text-purple-400 mt-2">{stats.expected}</div>
         </div>
         <div className="bg-slate-800 border border-blue-500 p-4 sm:p-6 rounded-lg">
           <div className="text-slate-400 text-xs sm:text-sm">Received</div>
@@ -166,7 +173,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
       {/* Filter Buttons */}
       <div className="mb-6 flex gap-2 flex-wrap">
-        {(['all', 'received', 'in_use', 'ready_for_checkout', 'departed'] as const).map((state) => (
+        {(['all', 'expected', 'received', 'in_use', 'ready_for_checkout', 'departed'] as const).map((state) => (
           <button
             key={state}
             onClick={() => setFilterState(state)}
