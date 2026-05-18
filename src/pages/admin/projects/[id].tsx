@@ -50,6 +50,13 @@ export default function ProjectManagement() {
   const [savingLabel, setSavingLabel] = useState(false);
   const [labelError, setLabelError] = useState('');
 
+  const [editingName, setEditingName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState('');
+
   const roleLabels: Record<string, string> = {
     read_only: t('roleReadOnly'),
     installation: t('roleInstallation'),
@@ -80,6 +87,7 @@ export default function ProjectManagement() {
     try {
       const projectRes = await axios.get(`/api/projects/${id}`);
       setProject(projectRes.data);
+      setEditingName(projectRes.data.name);
       setProjectUsers(projectRes.data.projectUsers || []);
       if (session?.user?.email) {
         const currentUserProject = projectRes.data.projectUsers?.find(
@@ -191,6 +199,35 @@ export default function ProjectManagement() {
     }
   }
 
+  async function saveProjectName() {
+    if (!id || savingName || !editingName.trim()) return;
+    setSavingName(true);
+    setNameError('');
+    try {
+      await axios.put(`/api/projects/${id}`, { name: editingName.trim() });
+      fetchProjectData();
+    } catch (error: any) {
+      setNameError(error.response?.data?.error || t('saveNameFailed'));
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function toggleArchive(newStatus: 'active' | 'archived') {
+    if (!id || archiving) return;
+    setArchiving(true);
+    setArchiveError('');
+    try {
+      await axios.put(`/api/projects/${id}`, { status: newStatus });
+      setShowArchiveConfirm(false);
+      fetchProjectData();
+    } catch (error: any) {
+      setArchiveError(error.response?.data?.error || t('archiveFailed'));
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   const canManageBoxes = userRole && ['admin', 'inventory_management'].includes(userRole);
   const isAdmin = userRole === 'admin';
 
@@ -219,6 +256,90 @@ export default function ProjectManagement() {
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{project.name}</h1>
           <p className="text-slate-400 mt-2">{t('manageBoxesTeam')}</p>
         </div>
+
+        {isAdmin && (
+          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+            <div className="p-6 space-y-6">
+              <h2 className="text-xl font-bold text-slate-50">{t('projectSettings')}</h2>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-slate-300">{t('projectName')}</label>
+                <div className="flex gap-2 flex-col sm:flex-row">
+                  <input
+                    type="text"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') saveProjectName(); }}
+                    className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={saveProjectName}
+                    disabled={savingName || !editingName.trim() || editingName.trim() === project.name}
+                    className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                  >
+                    {savingName ? tCommon('saving') : t('saveProjectName')}
+                  </button>
+                </div>
+                {nameError && <p className="text-sm text-red-400">{nameError}</p>}
+              </div>
+
+              <div className="pt-4 border-t border-slate-700 space-y-3">
+                {project.status === 'archived' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-900 text-amber-300 border border-amber-700">
+                        {t('archivedBadge')}
+                      </span>
+                      {project.archivedAt && (
+                        <span className="text-sm text-slate-400">
+                          {t('archivedAt')} {new Date(project.archivedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => toggleArchive('active')}
+                      disabled={archiving}
+                      className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                    >
+                      {archiving ? tCommon('updating') : t('unarchiveProject')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {!showArchiveConfirm ? (
+                      <button
+                        onClick={() => setShowArchiveConfirm(true)}
+                        className="w-full sm:w-auto px-6 py-3 bg-slate-700 hover:bg-amber-900 border border-slate-600 hover:border-amber-700 text-slate-300 hover:text-amber-300 rounded-lg font-medium transition"
+                      >
+                        {t('archiveProject')}
+                      </button>
+                    ) : (
+                      <div className="space-y-3 p-4 bg-amber-950 border border-amber-800 rounded-lg">
+                        <p className="text-sm text-amber-200">{t('archiveConfirmMessage')}</p>
+                        <div className="flex gap-2 flex-col sm:flex-row">
+                          <button
+                            onClick={() => toggleArchive('archived')}
+                            disabled={archiving}
+                            className="flex-1 px-4 py-2 bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                          >
+                            {archiving ? tCommon('updating') : t('confirmArchive')}
+                          </button>
+                          <button
+                            onClick={() => setShowArchiveConfirm(false)}
+                            className="flex-1 sm:flex-initial px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition"
+                          >
+                            {tCommon('cancel')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {archiveError && <p className="text-sm text-red-400">{archiveError}</p>}
+              </div>
+            </div>
+          </div>
+        )}
 
         {canManageBoxes && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
