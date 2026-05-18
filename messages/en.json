@@ -133,7 +133,18 @@
     "roleReadOnlyDisplay": "read only",
     "roleInstallationDisplay": "installation",
     "roleInventoryMgmtDisplay": "inventory management",
-    "roleAdminDisplay": "admin"
+    "roleAdminDisplay": "admin",
+    "projectSettings": "⚙️ Project Settings",
+    "projectName": "Project Name",
+    "saveProjectName": "Save Name",
+    "archiveProject": "Archive Project",
+    "archiveConfirmMessage": "This will hide the project from the dashboard and scanner. You can unarchive it later.",
+    "confirmArchive": "Confirm Archive",
+    "unarchiveProject": "Unarchive",
+    "archivedBadge": "Archived",
+    "archivedAt": "Archived",
+    "saveNameFailed": "Failed to save project name",
+    "archiveFailed": "Failed to update project status"
   },
   "errors": {
     "title": "Authentication Error",

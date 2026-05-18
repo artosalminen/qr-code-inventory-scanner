@@ -133,7 +133,18 @@
     "roleReadOnlyDisplay": "vain luku",
     "roleInstallationDisplay": "asennus",
     "roleInventoryMgmtDisplay": "varastonhallinta",
-    "roleAdminDisplay": "ylläpito"
+    "roleAdminDisplay": "ylläpito",
+    "projectSettings": "⚙️ Projektin asetukset",
+    "projectName": "Projektin nimi",
+    "saveProjectName": "Tallenna nimi",
+    "archiveProject": "Arkistoi projekti",
+    "archiveConfirmMessage": "Tämä piilottaa projektin kojelaudalta ja skannerista. Voit palauttaa sen myöhemmin.",
+    "confirmArchive": "Vahvista arkistointi",
+    "unarchiveProject": "Palauta arkistosta",
+    "archivedBadge": "Arkistoitu",
+    "archivedAt": "Arkistoitu",
+    "saveNameFailed": "Nimen tallennus epäonnistui",
+    "archiveFailed": "Projektin tilan päivitys epäonnistui"
   },
   "errors": {
     "title": "Todennusvirhe",
