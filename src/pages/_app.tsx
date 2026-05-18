@@ -4,7 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import { Inter } from 'next/font/google';
 import { useEffect, useState } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
-import { LocaleContext, getStoredLocale, setStoredLocale } from '@/lib/locale';
+import { LocaleContext, getStoredLocale, setStoredLocale, type Locale } from '@/lib/locale';
 import enMessages from '../../messages/en.json';
 import fiMessages from '../../messages/fi.json';
 
@@ -18,9 +18,9 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
     setLocaleState(getStoredLocale());
   }, []);
 
-  const setLocale = (l: string) => {
-    setStoredLocale(l as 'en' | 'fi');
-    setLocaleState(l as 'en' | 'fi');
+  const setLocale = (l: Locale) => {
+    setStoredLocale(l);
+    setLocaleState(l);
   };
 
   return (
