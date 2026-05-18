@@ -23,6 +23,7 @@ function timeAgo(date: Date): string {
 }
 
 const stateBadgeColors: Record<BoxState, string> = {
+  expected: 'bg-purple-900/50 text-purple-300 border border-purple-700',
   received: 'bg-blue-900/50 text-blue-300 border border-blue-700',
   in_use: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700',
   ready_for_checkout: 'bg-orange-900/50 text-orange-300 border border-orange-700',
@@ -30,6 +31,7 @@ const stateBadgeColors: Record<BoxState, string> = {
 };
 
 const stateLabels: Record<BoxState, string> = {
+  expected: 'Expected',
   received: 'Received',
   in_use: 'In Use',
   ready_for_checkout: 'Ready',
