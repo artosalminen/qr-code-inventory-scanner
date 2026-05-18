@@ -20,6 +20,14 @@ export default function AdminDashboard() {
   }, [status, router]);
 
   useEffect(() => {
+    if (status === 'authenticated') {
+      axios.get('/api/auth/user')
+        .then((res) => { if (!res.data.isAdmin) router.push('/dashboard'); })
+        .catch(() => router.push('/dashboard'));
+    }
+  }, [status, router]);
+
+  useEffect(() => {
     fetchProjects();
   }, []);
 

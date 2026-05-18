@@ -67,6 +67,14 @@ export default function ProjectManagement() {
     }
   }, [id, session]);
 
+  useEffect(() => {
+    if (session) {
+      axios.get('/api/auth/user')
+        .then((res) => { if (!res.data.isAdmin) router.push('/dashboard'); })
+        .catch(() => router.push('/dashboard'));
+    }
+  }, [session, router]);
+
   async function fetchProjectData() {
     try {
       const projectRes = await axios.get(`/api/projects/${id}`);
