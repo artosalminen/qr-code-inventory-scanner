@@ -10,6 +10,7 @@ interface BoxWithState extends Box {
 }
 
 const stateOptions = [
+  { value: 'expected', label: 'Expected' },
   { value: 'received', label: 'Received' },
   { value: 'in_use', label: 'In Use' },
   { value: 'ready_for_checkout', label: 'Ready for Checkout' },
@@ -72,7 +73,7 @@ export default function ProjectManagement() {
       if (session?.user?.email) {
         const userEmail = session.user.email;
         const currentUserProject = projectRes.data.projectUsers?.find(
-          (pu: ProjectUser) => pu.userId === userEmail,
+          (pu: ProjectUser) => pu.userId === (session?.user as any)?.id,
         );
         setUserRole(currentUserProject?.role || null);
       }
@@ -148,12 +149,9 @@ export default function ProjectManagement() {
   async function uploadCsv() {
     if (!csvFile || !id) return;
     setUploadingCsv(true);
-    const formData = new FormData();
-    formData.append('file', csvFile);
     try {
-      await axios.post(`/api/projects/${id}/csv-upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const csvContent = await csvFile.text();
+      await axios.post(`/api/projects/${id}/csv-upload`, { csvContent });
       setCsvFile(null);
       fetchProjectData();
     } catch (error) {
@@ -169,7 +167,7 @@ export default function ProjectManagement() {
     try {
       await axios.post(`/api/boxes/${boxId}/state-override`, {
         newState,
-        reason: overrideReason,
+        notes: overrideReason,
       });
       setSelectedBoxId(null);
       setOverrideReason('');
