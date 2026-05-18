@@ -60,7 +60,7 @@ async function handlePost(req: AuthenticatedRequest, res: NextApiResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { qrCode, label, description } = req.body;
+  const { qrCode, label, description, condition, notes } = req.body;
 
   // Validate required fields
   if (!qrCode || typeof qrCode !== 'string' || qrCode.trim() === '') {
@@ -97,6 +97,8 @@ async function handlePost(req: AuthenticatedRequest, res: NextApiResponse) {
         state: 'received',
         stateSetBy: req.userId,
         changeType: 'state_change',
+        condition: condition || null,
+        notes: notes || null,
       },
     });
 
