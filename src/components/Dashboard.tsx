@@ -39,6 +39,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [editNotes, setEditNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBoxes();
@@ -261,6 +262,28 @@ export default function Dashboard({ projectId }: DashboardProps) {
                           {tCommon('condition')}: {h.condition}
                         </div>
                       )}
+                      {h.imageUrls?.length > 0 && (
+                        <div className="flex gap-2 mt-3 flex-wrap">
+                          {h.imageUrls.map((url) => (
+                            <button
+                              key={url}
+                              type="button"
+                              onClick={() =>
+                                setLightboxUrl(
+                                  `/api/images/view?url=${encodeURIComponent(url)}&size=full`,
+                                )
+                              }
+                              className="w-16 h-16 rounded overflow-hidden border border-slate-500 hover:border-blue-400 transition"
+                            >
+                              <img
+                                src={`/api/images/view?url=${encodeURIComponent(url)}&size=thumb`}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -280,6 +303,26 @@ export default function Dashboard({ projectId }: DashboardProps) {
       )}
 
       {/* Edit Modal */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white text-2xl hover:text-slate-300 transition"
+            onClick={() => setLightboxUrl(null)}
+          >
+            ✕
+          </button>
+          <img
+            src={lightboxUrl}
+            alt=""
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {editModalOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setEditModalOpen(false)} />
