@@ -17,6 +17,7 @@ async function handleGet(req: AuthenticatedRequest, res: NextApiResponse) {
   if (!req.userId) return;
 
   const status = req.query.status || 'active';
+  const whereStatus = status === 'all' ? {} : { status: typeof status === 'string' ? status : status[0] };
 
   try {
     const projects = await prisma.project.findMany({
@@ -26,7 +27,7 @@ async function handleGet(req: AuthenticatedRequest, res: NextApiResponse) {
             userId: req.userId,
           },
         },
-        status: typeof status === 'string' ? status : status[0],
+        ...whereStatus,
       },
       include: {
         projectUsers: true,

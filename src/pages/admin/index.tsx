@@ -32,7 +32,7 @@ export default function AdminDashboard() {
 
   async function fetchProjects() {
     try {
-      const { data } = await axios.get('/api/projects');
+      const { data } = await axios.get('/api/projects?status=all');
       setProjects(data);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
@@ -118,9 +118,21 @@ export default function AdminDashboard() {
                 >
                   <div className="flex flex-col justify-between h-full">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-50 group-hover:text-blue-400 transition">
-                        {project.name}
-                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-lg font-bold text-slate-50 group-hover:text-blue-400 transition">
+                          {project.name}
+                        </h3>
+                        {project.status === 'archived' && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-900 text-amber-300 border border-amber-700">
+                            {t('archivedBadge')}
+                          </span>
+                        )}
+                      </div>
+                      {project.status === 'archived' && project.archivedAt && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          {t('archivedAt')} {new Date(project.archivedAt).toLocaleDateString()}
+                        </p>
+                      )}
                       {project.description && (
                         <p className="text-sm text-slate-400 mt-2 line-clamp-2">{project.description}</p>
                       )}
