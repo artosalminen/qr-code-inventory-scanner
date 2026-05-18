@@ -3,9 +3,11 @@ import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 import prisma from '@/lib/db';
 
 function deriveThumbnailUrl(url: string): string {
-  const parts = url.split('/');
+  const parsed = new URL(url);
+  const parts = parsed.pathname.split('/');
   parts[parts.length - 1] = `thumb_${parts[parts.length - 1]}`;
-  return parts.join('/');
+  parsed.pathname = parts.join('/');
+  return parsed.toString();
 }
 
 export default async function handler(req: AuthenticatedRequest, res: NextApiResponse) {

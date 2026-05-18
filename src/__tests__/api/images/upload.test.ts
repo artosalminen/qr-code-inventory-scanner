@@ -14,6 +14,22 @@ jest.mock('@/lib/auth-middleware', () => ({
   withAuth: jest.fn(async (req: any) => { req.userId = 'user-1'; }),
 }));
 
+jest.mock('@/lib/db', () => ({
+  __esModule: true,
+  default: {
+    boxStateHistory: {
+      findFirst: jest.fn().mockResolvedValue({
+        id: 'hist-1',
+        box: {
+          project: {
+            projectUsers: [{ userId: 'user-1', role: 'inventory_management' }],
+          },
+        },
+      }),
+    },
+  },
+}));
+
 async function* yieldBuffer(buf: Buffer) { yield buf; }
 
 function makeReq(overrides: Partial<any> = {}) {
@@ -52,6 +68,27 @@ describe('POST /api/images/upload', () => {
     const res = makeRes();
     await handler(makeReq({ query: { filename: 'x.jpg', projectId: 'p', boxId: 'b' } }), res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it('returns 403 when user has no project access', async () => {
+    const { default: prisma } = jest.requireMock('@/lib/db');
+    prisma.boxStateHistory.findFirst.mockResolvedValueOnce({
+      id: 'hist-1',
+      box: { project: { projectUsers: [] } },
+    });
+    const res = makeRes();
+    await handler(makeReq(), res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Forbidden' });
+  });
+
+  it('returns 403 when history entry not found', async () => {
+    const { default: prisma } = jest.requireMock('@/lib/db');
+    prisma.boxStateHistory.findFirst.mockResolvedValueOnce(null);
+    const res = makeRes();
+    await handler(makeReq(), res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Forbidden' });
   });
 
   it('uploads original and thumbnail and returns blob url', async () => {

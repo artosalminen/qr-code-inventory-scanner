@@ -2,6 +2,7 @@ import { NextApiResponse } from 'next';
 import { put } from '@vercel/blob';
 import sharp from 'sharp';
 import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
+import prisma from '@/lib/db';
 
 export const config = {
   api: { bodyParser: false },
@@ -45,6 +46,25 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
   const { filename, historyId, projectId, boxId } = req.query as Record<string, string>;
   if (!filename || !historyId || !projectId || !boxId) {
     return res.status(400).json({ error: 'Missing required query parameters' });
+  }
+
+  const entry = await prisma.boxStateHistory.findFirst({
+    where: { id: historyId },
+    include: {
+      box: {
+        include: {
+          project: {
+            include: {
+              projectUsers: { where: { userId: req.userId } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!entry || !entry.box.project.projectUsers.length) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   try {
