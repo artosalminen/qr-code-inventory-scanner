@@ -70,8 +70,9 @@ export default function ProjectManagement() {
 
       // Get current user's role from session
       if (session?.user?.email) {
+        const userEmail = session.user.email;
         const currentUserProject = projectRes.data.projectUsers?.find(
-          (pu: ProjectUser) => pu.userId === session.user.email,
+          (pu: ProjectUser) => pu.userId === userEmail,
         );
         setUserRole(currentUserProject?.role || null);
       }
