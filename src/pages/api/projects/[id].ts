@@ -64,20 +64,27 @@ async function handlePut(req: AuthenticatedRequest, res: NextApiResponse) {
   }
 
   try {
-    const { name, description } = req.body;
+    const { name, description, status } = req.body;
 
-    if (!name) {
-      res.status(400).json({ error: 'Project name required' });
-      return;
+    if (name !== undefined && !name) {
+      return res.status(400).json({ error: 'Project name cannot be empty' });
+    }
+
+    if (status !== undefined && status !== 'active' && status !== 'archived') {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    const data: Record<string, unknown> = { updatedAt: new Date() };
+    if (name !== undefined) data.name = name;
+    if (description !== undefined) data.description = description || null;
+    if (status !== undefined) {
+      data.status = status;
+      data.archivedAt = status === 'archived' ? new Date() : null;
     }
 
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        name,
-        description: description || null,
-        updatedAt: new Date(),
-      },
+      data,
       include: {
         projectUsers: {
           include: { user: true },
