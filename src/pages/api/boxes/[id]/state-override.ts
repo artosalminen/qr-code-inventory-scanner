@@ -3,7 +3,7 @@ import { withAuth, AuthenticatedRequest } from '@/lib/auth-middleware';
 import prisma from '@/lib/db';
 import { BoxState } from '@/types';
 
-const validStates: BoxState[] = ['received', 'in_use', 'ready_for_checkout', 'departed'];
+const validStates: BoxState[] = ['expected', 'received', 'in_use', 'ready_for_checkout', 'departed'];
 
 export default async function handler(req: AuthenticatedRequest, res: NextApiResponse) {
   const { id } = req.query;
