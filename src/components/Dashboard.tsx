@@ -67,7 +67,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
     try {
       const { data } = await axios.get(`/api/projects/${projectId}`);
       const currentUserProject = data.projectUsers?.find(
-        (pu: ProjectUser) => pu.userId === session?.user?.email,
+        (pu: ProjectUser) => pu.userId === (session?.user as any)?.id,
       );
       setUserRole(currentUserProject?.role || null);
     } catch (error) {
