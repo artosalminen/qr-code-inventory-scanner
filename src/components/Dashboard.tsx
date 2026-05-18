@@ -273,6 +273,97 @@ export default function Dashboard({ projectId }: DashboardProps) {
           onClick={() => setSelectedBox(null)}
         />
       )}
+
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/60 z-50"
+            onClick={() => setEditModalOpen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between p-6 border-b border-slate-700">
+                <h2 className="text-lg font-bold text-slate-50">
+                  Edit — {selectedBox?.label || selectedBox?.qrCode}
+                </h2>
+                <button
+                  onClick={() => setEditModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">State</label>
+                  <select
+                    value={editState}
+                    onChange={(e) => setEditState(e.target.value as BoxState)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="received">Received</option>
+                    <option value="in_use">In Use</option>
+                    <option value="ready_for_checkout">Ready for Checkout</option>
+                    <option value="departed">Departed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Condition</label>
+                  <div className="flex gap-3">
+                    {[
+                      { value: 'ok', label: '✓ OK' },
+                      { value: 'damaged', label: '⚠️ Damaged' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setEditCondition(opt.value)}
+                        className={`flex-1 px-4 py-2 rounded-lg font-medium transition text-sm ${
+                          editCondition === opt.value
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Notes (optional)</label>
+                  <textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={3}
+                    placeholder="Describe the change..."
+                  />
+                </div>
+                {editError && (
+                  <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">
+                    {editError}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 p-6 pt-0">
+                <button
+                  onClick={() => setEditModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSaving}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
