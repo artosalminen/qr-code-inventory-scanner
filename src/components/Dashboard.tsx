@@ -148,7 +148,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
       <RealtimeSync projectId={projectId} onBoxStateChanged={handleBoxStateChanged} />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
         <div className="bg-slate-800 border border-slate-700 p-4 sm:p-6 rounded-lg">
           <div className="text-slate-400 text-xs sm:text-sm">Total</div>
           <div className="text-2xl sm:text-4xl font-bold text-slate-50 mt-2">{stats.total}</div>
@@ -164,6 +164,10 @@ export default function Dashboard({ projectId }: DashboardProps) {
         <div className="bg-slate-800 border border-yellow-500 p-4 sm:p-6 rounded-lg">
           <div className="text-slate-400 text-xs sm:text-sm">In Use</div>
           <div className="text-2xl sm:text-4xl font-bold text-yellow-400 mt-2">{stats.inUse}</div>
+        </div>
+        <div className="bg-slate-800 border border-orange-500 p-4 sm:p-6 rounded-lg">
+          <div className="text-slate-400 text-xs sm:text-sm">Ready</div>
+          <div className="text-2xl sm:text-4xl font-bold text-orange-400 mt-2">{stats.readyForCheckout}</div>
         </div>
         <div className="bg-slate-800 border border-green-500 p-4 sm:p-6 rounded-lg">
           <div className="text-slate-400 text-xs sm:text-sm">Departed</div>
