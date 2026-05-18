@@ -20,6 +20,7 @@ const stateColors: Record<BoxState, string> = {
 interface BoxWithState extends Box {
   currentState?: BoxState;
   stateHistory?: BoxStateHistory[];
+  hasDamage?: boolean;
 }
 
 export default function Dashboard({ projectId }: DashboardProps) {
@@ -204,8 +205,13 @@ export default function Dashboard({ projectId }: DashboardProps) {
                 stateColors[currentState]
               } ${selectedBox?.id === box.id ? 'ring-2 ring-blue-400 bg-opacity-20' : ''}`}
             >
-              <div className="font-bold text-sm sm:text-base truncate text-slate-50">
-                {box.qrCode}
+              <div className="flex items-center justify-between gap-1">
+                <div className="font-bold text-sm sm:text-base truncate text-slate-50">
+                  {box.qrCode}
+                </div>
+                {box.hasDamage && (
+                  <span className="text-amber-400 text-base shrink-0" title="Damaged">⚠️</span>
+                )}
               </div>
               <div className="text-[10px] leading-tight text-slate-300 mt-1">{box.description || '-'}</div>
               <div className="mt-3 text-sm sm:text-base font-medium text-slate-50">

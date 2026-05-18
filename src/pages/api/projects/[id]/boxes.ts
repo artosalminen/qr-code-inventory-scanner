@@ -37,11 +37,24 @@ async function handleGet(req: AuthenticatedRequest, res: NextApiResponse) {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        _count: {
+          select: {
+            stateHistory: {
+              where: { condition: 'damaged' },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.status(200).json(boxes);
+    res.status(200).json(
+      boxes.map((box) => ({
+        ...box,
+        hasDamage: box._count.stateHistory > 0,
+        _count: undefined,
+      })),
+    );
   } catch (error) {
     console.error('Error fetching boxes:', error);
     res.status(500).json({ error: 'Internal server error' });
