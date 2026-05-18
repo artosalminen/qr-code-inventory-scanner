@@ -1,8 +1,10 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
+import { useTranslations } from 'next-intl';
+import { LocaleContext } from '@/lib/locale';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +15,8 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { locale, setLocale } = useContext(LocaleContext);
+  const t = useTranslations('nav');
 
   const isActive = (path: string) => router.pathname === path;
 
@@ -25,18 +29,16 @@ export default function Layout({ children }: LayoutProps) {
   }, [session]);
 
   const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: '📊' },
-    { label: 'Scanner', path: '/scanner', icon: '📱' },
-    ...(isAdmin ? [{ label: 'Admin', path: '/admin', icon: '⚙️' }] : []),
+    { label: t('dashboard'), path: '/dashboard', icon: '📊' },
+    { label: t('scanner'), path: '/scanner', icon: '📱' },
+    ...(isAdmin ? [{ label: t('admin'), path: '/admin', icon: '⚙️' }] : []),
   ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
-      {/* Header */}
       <header className="bg-slate-900 border-b border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg">
                 📦
@@ -46,7 +48,6 @@ export default function Layout({ children }: LayoutProps) {
               </span>
             </Link>
 
-            {/* Desktop Navigation */}
             <nav className="hidden md:flex gap-1">
               {navItems.map((item) => (
                 <Link
@@ -64,21 +65,37 @@ export default function Layout({ children }: LayoutProps) {
               ))}
             </nav>
 
-            {/* User Menu */}
             <div className="flex items-center gap-4">
               {session?.user?.email && (
                 <div className="hidden sm:block text-sm text-slate-400">
                   {session.user.email}
                 </div>
               )}
+
+              {/* Language toggle */}
+              <div className="flex items-center gap-1 text-sm font-medium">
+                <button
+                  onClick={() => setLocale('en')}
+                  className={locale === 'en' ? 'text-white font-semibold' : 'text-slate-400 hover:text-slate-200 transition'}
+                >
+                  EN
+                </button>
+                <span className="text-slate-600">|</span>
+                <button
+                  onClick={() => setLocale('fi')}
+                  className={locale === 'fi' ? 'text-white font-semibold' : 'text-slate-400 hover:text-slate-200 transition'}
+                >
+                  FI
+                </button>
+              </div>
+
               <button
                 onClick={() => signOut({ redirect: true, callbackUrl: '/' })}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm font-medium"
               >
-                Sign Out
+                {t('signOut')}
               </button>
 
-              {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2 text-slate-300 hover:bg-slate-800 rounded-lg"
@@ -88,7 +105,6 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
-          {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <nav className="md:hidden pb-4 border-t border-slate-700">
               {navItems.map((item) => (
@@ -111,7 +127,6 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
