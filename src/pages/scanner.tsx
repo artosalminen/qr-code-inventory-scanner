@@ -55,6 +55,7 @@ export default function ScannerPage() {
   const [addBoxError, setAddBoxError] = useState('');
   const [isAddingBox, setIsAddingBox] = useState(false);
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
+  const [pendingScanQr, setPendingScanQr] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -73,10 +74,12 @@ export default function ScannerPage() {
   }, [selectedProjectId, session]);
 
   useEffect(() => {
+    setPendingScanQr(null);
     setAddBoxFormOpen(false);
     setAddBoxQr('');
     setAddBoxLabel('');
     setAddBoxError('');
+    setLastMessage('');
   }, [selectedProjectId, scanMode]);
 
   async function fetchProjectRole(projectId: string) {
@@ -105,22 +108,24 @@ export default function ScannerPage() {
 
   async function handleScan(qrCode: string) {
     if (!selectedProjectId || isProcessing) return;
+    setPendingScanQr(qrCode);
+    setScannerOpen(false);
+    setLastMessage('');
+  }
 
+  async function handleConfirmScan() {
+    if (!pendingScanQr || !selectedProjectId || isProcessing) return;
     setIsProcessing(true);
     try {
       const { data } = await axios.post('/api/boxes/scan', {
         projectId: selectedProjectId,
-        qrCode,
+        qrCode: pendingScanQr,
         action: scanMode,
         condition,
         notes,
       });
-
-      setLastMessage(`${data.box.label || 'Box'} - ${data.newState}`);
+      setLastMessage(`${data.box.label || 'Box'} — ${data.newState}`);
       setLastMessageType('success');
-      setNotes('');
-      setCondition('ok');
-      setScannerOpen(false);
       setScanHistory((prev) =>
         [
           {
@@ -132,26 +137,33 @@ export default function ScannerPage() {
           ...prev,
         ].slice(0, 5),
       );
-
-      setTimeout(() => {
-        setScannerOpen(true);
-      }, 1500);
+      setPendingScanQr(null);
+      setNotes('');
+      setCondition('ok');
+      setTimeout(() => setScannerOpen(true), 1500);
     } catch (error: any) {
       const isNotFound = error.response?.status === 404;
       if (isNotFound && canAddBoxes) {
         setAddBoxFormOpen(true);
-        setAddBoxQr(qrCode);
+        setAddBoxQr(pendingScanQr);
         setAddBoxLabel('');
         setAddBoxError('');
-        setScannerOpen(false);
       } else {
-        const message = error.response?.data?.error || 'Scan failed';
-        setLastMessage(message);
+        setLastMessage(error.response?.data?.error || 'Scan failed');
         setLastMessageType('error');
       }
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  function handleRescan() {
+    setPendingScanQr(null);
+    setCondition('ok');
+    setNotes('');
+    setLastMessage('');
+    setAddBoxFormOpen(false);
+    setScannerOpen(true);
   }
 
   async function handleAddBox() {
