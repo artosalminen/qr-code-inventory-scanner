@@ -40,6 +40,11 @@ export interface ProjectUser {
   role: UserRole;
   assignedAt: Date;
   assignedBy: string | null;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
 }
 
 export interface Box {
