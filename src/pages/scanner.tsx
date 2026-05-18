@@ -75,6 +75,12 @@ export default function ScannerPage() {
     setLastMessage('');
   }, [selectedProjectId, scanMode]);
 
+  useEffect(() => {
+    if (userRole === 'installation' && ['check_in', 'check_out'].includes(scanMode)) {
+      setScanMode('activate');
+    }
+  }, [userRole]);
+
   async function fetchProjectRole(projectId: string) {
     try {
       const { data } = await axios.get(`/api/projects/${projectId}`);
@@ -208,11 +214,11 @@ export default function ScannerPage() {
   const canAddBoxes =
     scanMode === 'check_in' && ['admin', 'inventory_management'].includes(userRole ?? '');
 
-  const scanModes: { value: ScanAction; label: string; icon: string }[] = [
-    { value: 'check_in', label: t('checkIn'), icon: '📥' },
-    { value: 'activate', label: t('activate'), icon: '⚡' },
-    { value: 'return', label: t('return'), icon: '↩️' },
-    { value: 'check_out', label: t('checkOut'), icon: '📤' },
+  const scanModes: { value: ScanAction; label: string; icon: string; disabled: boolean }[] = [
+    { value: 'check_in',  label: t('checkIn'),  icon: '📥', disabled: userRole === 'installation' },
+    { value: 'activate',  label: t('activate'), icon: '⚡', disabled: false },
+    { value: 'return',    label: t('return'),   icon: '↩️', disabled: false },
+    { value: 'check_out', label: t('checkOut'), icon: '📤', disabled: userRole === 'installation' },
   ];
 
   const addBoxForm = (
@@ -359,11 +365,14 @@ export default function ScannerPage() {
                   {scanModes.map((mode) => (
                     <button
                       key={mode.value}
-                      onClick={() => setScanMode(mode.value)}
+                      onClick={() => !mode.disabled && setScanMode(mode.value)}
+                      disabled={mode.disabled}
                       className={`px-4 py-3 rounded-lg font-medium transition flex flex-col items-center gap-1 text-sm ${
-                        scanMode === mode.value
-                          ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        mode.disabled
+                          ? 'opacity-50 cursor-not-allowed bg-slate-700 text-slate-500'
+                          : scanMode === mode.value
+                            ? 'bg-blue-600 text-white ring-2 ring-blue-400'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                     >
                       <span className="text-xl">{mode.icon}</span>
