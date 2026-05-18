@@ -18,14 +18,10 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
   await withAuth(req, res);
   if (res.headersSent) return;
 
-  const { newState, reason } = req.body;
+  const { newState, condition, notes } = req.body;
 
   if (!newState || !validStates.includes(newState)) {
     return res.status(400).json({ error: 'Invalid new state' });
-  }
-
-  if (!reason || reason.trim() === '') {
-    return res.status(400).json({ error: 'Reason is required for manual override' });
   }
 
   try {
@@ -57,7 +53,8 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
         state: newState,
         stateSetBy: req.userId!,
         changeType: 'manual_override',
-        notes: reason,
+        condition: condition || null,
+        notes: notes || null,
       },
     });
 
