@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 const initPrisma = () => {
   const databaseUrl = process.env.DATABASE_URL;
@@ -9,9 +11,17 @@ const initPrisma = () => {
     );
   }
 
-  console.log('Initializing Prisma Client');
+  console.log('Initializing Prisma Client with serverless driver');
+
+  // Use serverless driver for Vercel/serverless environments
+  const pool = new Pool({
+    connectionString: databaseUrl,
+  });
+
+  const adapter = new PrismaPg(pool);
 
   return new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'error', 'warn'],
     errorFormat: 'colorless',
   });
