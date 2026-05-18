@@ -196,9 +196,9 @@ export default function Dashboard({ projectId }: DashboardProps) {
               }`}
             >
               <div className="font-bold text-sm sm:text-base truncate text-slate-50">
-                {box.label || 'Unlabeled'}
+                {box.qrCode}
               </div>
-              <div className="text-xs sm:text-sm text-slate-300 mt-1">{box.qrCode}</div>
+              <div className="text-xs sm:text-sm text-slate-300 mt-1">{box.label || '-'}</div>
               <div className="mt-3 text-sm sm:text-base font-medium text-slate-50">
                 {stateLabels[currentState]}
               </div>
