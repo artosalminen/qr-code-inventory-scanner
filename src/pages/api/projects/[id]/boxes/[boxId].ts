@@ -15,15 +15,15 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
   await withProjectRole(req, res, id, ['admin', 'inventory_management']);
   if (!req.userId) return;
 
-  const { label } = req.body;
-  if (label !== undefined && typeof label !== 'string') {
-    return res.status(400).json({ error: 'Label must be a string' });
+  const { description } = req.body;
+  if (description !== undefined && typeof description !== 'string') {
+    return res.status(400).json({ error: 'Description must be a string' });
   }
 
   try {
     const box = await prisma.box.update({
       where: { id: boxId },
-      data: { label: label?.trim() || null },
+      data: { description: description?.trim() || null },
     });
     return res.status(200).json(box);
   } catch (error: any) {
