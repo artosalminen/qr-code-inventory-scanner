@@ -209,7 +209,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
               <div className="font-bold text-sm sm:text-base truncate text-slate-50">
                 {box.qrCode}
               </div>
-              <div className="text-xs sm:text-sm text-slate-300 mt-1">{box.label || '-'}</div>
+              <div className="text-xs sm:text-sm text-slate-300 mt-1">{box.description || '-'}</div>
               <div className="mt-3 text-sm sm:text-base font-medium text-slate-50">
                 {stateLabels[currentState]}
               </div>
@@ -227,7 +227,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-50">
                   {selectedBox.qrCode}
                 </h3>
-                <p className="text-slate-400 text-sm mt-1">{selectedBox.label || 'Unlabeled'}</p>
+                <p className="text-slate-400 text-sm mt-1">{selectedBox.description || selectedBox.qrCode}</p>
               </div>
               <div className="flex items-center gap-1">
                 {userRole && ['admin', 'inventory_management'].includes(userRole) && (
