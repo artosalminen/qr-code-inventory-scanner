@@ -15,6 +15,7 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canScan, setCanScan] = useState(true);
   const { locale, setLocale } = useContext(LocaleContext);
   const t = useTranslations('nav');
 
@@ -23,14 +24,17 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (session?.user) {
       axios.get('/api/auth/user')
-        .then((res) => setIsAdmin(res.data.isAdmin ?? false))
+        .then((res) => {
+          setIsAdmin(res.data.isAdmin ?? false);
+          setCanScan(res.data.canScan ?? true);
+        })
         .catch(() => setIsAdmin(false));
     }
   }, [session]);
 
   const navItems = [
     { label: t('dashboard'), path: '/dashboard', icon: '📊' },
-    { label: t('scanner'), path: '/scanner', icon: '📱' },
+    ...(canScan ? [{ label: t('scanner'), path: '/scanner', icon: '📱' }] : []),
     ...(isAdmin ? [{ label: t('admin'), path: '/admin', icon: '⚙️' }] : []),
   ];
 
