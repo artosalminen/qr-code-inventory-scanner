@@ -4,7 +4,37 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Layout from '@/components/Layout';
 import QRScanner from '@/components/QRScanner';
-import { Project, ScanAction } from '@/types';
+import { BoxState, Project, ScanAction } from '@/types';
+
+interface ScanHistoryEntry {
+  label: string;
+  qrCode: string;
+  newState: BoxState;
+  timestamp: Date;
+}
+
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 10) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  return `${Math.floor(minutes / 60)}h ago`;
+}
+
+const stateBadgeColors: Record<BoxState, string> = {
+  received: 'bg-blue-900/50 text-blue-300 border border-blue-700',
+  in_use: 'bg-yellow-900/50 text-yellow-300 border border-yellow-700',
+  ready_for_checkout: 'bg-orange-900/50 text-orange-300 border border-orange-700',
+  departed: 'bg-green-900/50 text-green-300 border border-green-700',
+};
+
+const stateLabels: Record<BoxState, string> = {
+  received: 'Received',
+  in_use: 'In Use',
+  ready_for_checkout: 'Ready',
+  departed: 'Departed',
+};
 
 export default function ScannerPage() {
   const { data: session, status } = useSession();
@@ -24,6 +54,7 @@ export default function ScannerPage() {
   const [addBoxLabel, setAddBoxLabel] = useState('');
   const [addBoxError, setAddBoxError] = useState('');
   const [isAddingBox, setIsAddingBox] = useState(false);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -90,6 +121,17 @@ export default function ScannerPage() {
       setNotes('');
       setCondition('ok');
       setScannerOpen(false);
+      setScanHistory((prev) =>
+        [
+          {
+            label: data.box.label || data.box.qrCode,
+            qrCode: data.box.qrCode,
+            newState: data.newState as BoxState,
+            timestamp: new Date(),
+          },
+          ...prev,
+        ].slice(0, 5),
+      );
 
       setTimeout(() => {
         setScannerOpen(true);
@@ -129,6 +171,17 @@ export default function ScannerPage() {
       setAddBoxQr('');
       setAddBoxLabel('');
       setScannerOpen(false);
+      setScanHistory((prev) =>
+        [
+          {
+            label: addBoxLabel.trim() || addBoxQr.trim(),
+            qrCode: addBoxQr.trim(),
+            newState: 'received' as BoxState,
+            timestamp: new Date(),
+          },
+          ...prev,
+        ].slice(0, 5),
+      );
     } catch (error: any) {
       setAddBoxError(error.response?.data?.error || 'Failed to add box');
     } finally {
@@ -366,6 +419,30 @@ export default function ScannerPage() {
             </div>
           </div>
         </div>
+        {/* Scan History */}
+        {scanHistory.length > 0 && (
+          <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-700">
+              <h2 className="font-semibold text-slate-200 text-sm">Recent Scans</h2>
+            </div>
+            <div className="divide-y divide-slate-700">
+              {scanHistory.map((entry, i) => (
+                <div key={i} className="flex items-center justify-between px-5 py-3 gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-slate-50 text-sm truncate">{entry.label}</div>
+                    <div className="text-xs text-slate-500 truncate">{entry.qrCode}</div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${stateBadgeColors[entry.newState]}`}>
+                      {stateLabels[entry.newState]}
+                    </span>
+                    <span className="text-xs text-slate-500 w-16 text-right">{timeAgo(entry.timestamp)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
