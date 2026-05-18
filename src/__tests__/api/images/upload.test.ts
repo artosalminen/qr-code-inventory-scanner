@@ -22,7 +22,7 @@ function makeReq(overrides: Partial<any> = {}) {
     query: { filename: 'photo.jpg', historyId: 'hist-1', projectId: 'proj-1', boxId: 'box-1' },
   };
   req[Symbol.asyncIterator] = yieldBuffer.bind(null, Buffer.from('image-data'));
-  if (overrides.query) req.query = { ...req.query, ...overrides.query };
+  if (overrides.query) req.query = overrides.query;
   if ('method' in overrides) req.method = overrides.method;
   return req;
 }
