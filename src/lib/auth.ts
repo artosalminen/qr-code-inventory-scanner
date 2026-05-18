@@ -1,4 +1,3 @@
-// src/lib/auth.ts
 import { type NextAuthOptions } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
@@ -40,11 +39,15 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user }) {
-      // Update last login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLogin: new Date() },
-      });
+      try {
+        // Update last login
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() },
+        });
+      } catch (error) {
+        console.error('Failed to update last login:', error);
+      }
     },
   },
 };
