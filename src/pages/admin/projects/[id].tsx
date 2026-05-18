@@ -4,54 +4,43 @@ import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import Layout from '@/components/Layout';
 import { Project, ProjectUser, User, Box, BoxState } from '@/types';
+import { useTranslations } from 'next-intl';
 
 interface BoxWithState extends Box {
   stateHistory?: Array<{ state: BoxState }>;
 }
 
-const stateOptions = [
-  { value: 'expected', label: 'Expected' },
-  { value: 'received', label: 'Received' },
-  { value: 'in_use', label: 'In Use' },
-  { value: 'ready_for_checkout', label: 'Ready for Checkout' },
-  { value: 'departed', label: 'Departed' },
-] as const;
-
-const roleOptions = [
-  { value: 'read_only', label: 'Read-only' },
-  { value: 'installation', label: 'Installation' },
-  { value: 'inventory_management', label: 'Inventory Mgmt' },
-  { value: 'admin', label: 'Admin' },
-] as const;
+const stateValues: BoxState[] = ['expected', 'received', 'in_use', 'ready_for_checkout', 'departed'];
+const roleValues = ['read_only', 'installation', 'inventory_management', 'admin'] as const;
 
 export default function ProjectManagement() {
   const router = useRouter();
   const { id } = router.query;
   const { data: session } = useSession();
+  const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
+  const tStates = useTranslations('states');
+
   const [project, setProject] = useState<Project | null>(null);
   const [projectUsers, setProjectUsers] = useState<ProjectUser[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [boxes, setBoxes] = useState<BoxWithState[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // User assignment
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRole, setSelectedRole] = useState('read_only');
   const [loading, setLoading] = useState(false);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
-  // Add single box
   const [showAddBox, setShowAddBox] = useState(false);
   const [boxQrCode, setBoxQrCode] = useState('');
   const [boxLabel, setBoxLabel] = useState('');
   const [boxDescription, setBoxDescription] = useState('');
   const [addingBox, setAddingBox] = useState(false);
 
-  // CSV upload
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploadingCsv, setUploadingCsv] = useState(false);
 
-  // State override
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const [newState, setNewState] = useState<BoxState>('received');
   const [overrideReason, setOverrideReason] = useState('');
@@ -61,10 +50,22 @@ export default function ProjectManagement() {
   const [savingLabel, setSavingLabel] = useState(false);
   const [labelError, setLabelError] = useState('');
 
+  const roleLabels: Record<string, string> = {
+    read_only: t('roleReadOnly'),
+    installation: t('roleInstallation'),
+    inventory_management: t('roleInventoryMgmt'),
+    admin: t('roleAdmin'),
+  };
+
+  const roleDisplayLabels: Record<string, string> = {
+    read_only: t('roleReadOnlyDisplay'),
+    installation: t('roleInstallationDisplay'),
+    inventory_management: t('roleInventoryMgmtDisplay'),
+    admin: t('roleAdminDisplay'),
+  };
+
   useEffect(() => {
-    if (typeof id === 'string' && session) {
-      fetchProjectData();
-    }
+    if (typeof id === 'string' && session) fetchProjectData();
   }, [id, session]);
 
   useEffect(() => {
@@ -80,23 +81,18 @@ export default function ProjectManagement() {
       const projectRes = await axios.get(`/api/projects/${id}`);
       setProject(projectRes.data);
       setProjectUsers(projectRes.data.projectUsers || []);
-
-      // Get current user's role from session
       if (session?.user?.email) {
-        const userEmail = session.user.email;
         const currentUserProject = projectRes.data.projectUsers?.find(
           (pu: ProjectUser) => pu.userId === (session?.user as any)?.id,
         );
         setUserRole(currentUserProject?.role || null);
       }
-
       try {
         const usersRes = await axios.get('/api/users');
         setUsers(usersRes.data);
       } catch (e) {
         setUsers([]);
       }
-
       try {
         const boxesRes = await axios.get(`/api/projects/${id}/boxes`);
         setBoxes(boxesRes.data);
@@ -113,15 +109,11 @@ export default function ProjectManagement() {
     setLoading(true);
     setAssignmentError(null);
     try {
-      await axios.post(`/api/projects/${id}/users`, {
-        userId: selectedUserId,
-        role: selectedRole,
-      });
+      await axios.post(`/api/projects/${id}/users`, { userId: selectedUserId, role: selectedRole });
       setSelectedUserId('');
       fetchProjectData();
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Failed to assign user';
-      setAssignmentError(message);
+      setAssignmentError(error.response?.data?.error || t('assignFailed'));
       console.error('Failed to assign user:', error);
     } finally {
       setLoading(false);
@@ -141,10 +133,7 @@ export default function ProjectManagement() {
     if (!boxQrCode.trim() || !id) return;
     setAddingBox(true);
     try {
-      await axios.post(`/api/projects/${id}/boxes`, {
-        qrCode: boxQrCode,
-        description: boxDescription,
-      });
+      await axios.post(`/api/projects/${id}/boxes`, { qrCode: boxQrCode, description: boxDescription });
       setBoxQrCode('');
       setBoxDescription('');
       setShowAddBox(false);
@@ -175,10 +164,7 @@ export default function ProjectManagement() {
     if (!newState || !overrideReason.trim() || !id) return;
     setOverridingState(true);
     try {
-      await axios.post(`/api/boxes/${boxId}/state-override`, {
-        newState,
-        notes: overrideReason,
-      });
+      await axios.post(`/api/boxes/${boxId}/state-override`, { newState, notes: overrideReason });
       setSelectedBoxId(null);
       setOverrideReason('');
       setNewState('received');
@@ -195,9 +181,7 @@ export default function ProjectManagement() {
     setSavingLabel(true);
     setLabelError('');
     try {
-      await axios.patch(`/api/projects/${id}/boxes/${boxId}`, {
-        description: editingLabelValue,
-      });
+      await axios.patch(`/api/projects/${id}/boxes/${boxId}`, { description: editingLabelValue });
       setEditingLabelBoxId(null);
       fetchProjectData();
     } catch (error: any) {
@@ -216,7 +200,7 @@ export default function ProjectManagement() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin text-3xl mb-4">⌛</div>
-            <p className="text-slate-400">Loading project...</p>
+            <p className="text-slate-400">{t('loadingProject')}</p>
           </div>
         </div>
       </Layout>
@@ -225,41 +209,39 @@ export default function ProjectManagement() {
   return (
     <Layout>
       <div className="space-y-8">
-        {/* Header */}
         <div>
           <button
             onClick={() => router.push('/admin')}
             className="text-blue-400 hover:text-blue-300 text-sm font-medium mb-4 flex items-center gap-1"
           >
-            ← Back to Admin
+            {t('backToAdmin')}
           </button>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{project.name}</h1>
-          <p className="text-slate-400 mt-2">Manage boxes and team members</p>
+          <p className="text-slate-400 mt-2">{t('manageBoxesTeam')}</p>
         </div>
 
-        {/* Add Box Section */}
         {canManageBoxes && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-50 mb-4">➕ Add Box</h2>
+              <h2 className="text-xl font-bold text-slate-50 mb-4">{t('addBox')}</h2>
               {!showAddBox ? (
                 <button
                   onClick={() => setShowAddBox(true)}
                   className="w-full sm:w-auto px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition active:scale-95"
                 >
-                  Add Single Box
+                  {t('addSingleBox')}
                 </button>
               ) : (
                 <div className="space-y-4">
                   <input
                     type="text"
-                    placeholder="QR Code *"
+                    placeholder={t('qrCodeRequired')}
                     value={boxQrCode}
                     onChange={(e) => setBoxQrCode(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <textarea
-                    placeholder="Description (optional)"
+                    placeholder={t('descriptionOptional')}
                     value={boxDescription}
                     onChange={(e) => setBoxDescription(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
@@ -271,13 +253,13 @@ export default function ProjectManagement() {
                       disabled={addingBox || !boxQrCode.trim()}
                       className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                     >
-                      {addingBox ? 'Adding...' : 'Add Box'}
+                      {addingBox ? tCommon('adding') : t('addBoxButton')}
                     </button>
                     <button
                       onClick={() => setShowAddBox(false)}
                       className="flex-1 sm:flex-initial px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition"
                     >
-                      Cancel
+                      {tCommon('cancel')}
                     </button>
                   </div>
                 </div>
@@ -286,11 +268,10 @@ export default function ProjectManagement() {
           </div>
         )}
 
-        {/* CSV Upload */}
         {isAdmin && (
           <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-50 mb-4">📤 Upload CSV</h2>
+              <h2 className="text-xl font-bold text-slate-50 mb-4">{t('uploadCsv')}</h2>
               <div className="space-y-4">
                 <input
                   type="file"
@@ -298,27 +279,26 @@ export default function ProjectManagement() {
                   onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
                   className="w-full px-4 py-2 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
                 />
-                <p className="text-sm text-slate-400">CSV format: qr_code, label, description</p>
+                <p className="text-sm text-slate-400">{t('csvFormat')}</p>
                 <button
                   onClick={uploadCsv}
                   disabled={uploadingCsv || !csvFile}
                   className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                 >
-                  {uploadingCsv ? 'Uploading...' : 'Upload CSV'}
+                  {uploadingCsv ? tCommon('uploading') : t('uploadCsvButton')}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Boxes List */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
           <div className="p-6">
-            <h2 className="text-xl font-bold text-slate-50 mb-4">📦 Boxes ({boxes.length})</h2>
+            <h2 className="text-xl font-bold text-slate-50 mb-4">{t('boxes')} ({boxes.length})</h2>
             {boxes.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {boxes.map((box) => {
-                  const currentState = box.stateHistory?.[0]?.state || 'received';
+                  const currentState = (box.stateHistory?.[0]?.state || 'received') as BoxState;
                   return (
                     <div key={box.id} className="bg-slate-700 border border-slate-600 rounded-lg p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -326,7 +306,7 @@ export default function ProjectManagement() {
                           <div className="font-semibold text-slate-50 truncate">{box.qrCode}</div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-sm text-slate-400 truncate">
-                              {box.description || <span className="italic text-slate-500">No description</span>}
+                              {box.description || <span className="italic text-slate-500">{tCommon('noDescription')}</span>}
                             </span>
                             {canManageBoxes && (
                               <button
@@ -337,15 +317,15 @@ export default function ProjectManagement() {
                                   setSelectedBoxId(null);
                                 }}
                                 className="text-slate-500 hover:text-slate-300 transition shrink-0"
-                                title="Edit label"
+                                title={tCommon('edit')}
                               >
                                 ✏️
                               </button>
                             )}
                           </div>
                           <div className="mt-2 inline-block">
-                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-600 text-slate-200 capitalize">
-                              {currentState}
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-600 text-slate-200">
+                              {tStates(currentState)}
                             </span>
                           </div>
                         </div>
@@ -354,7 +334,7 @@ export default function ProjectManagement() {
                             onClick={() => { setSelectedBoxId(box.id); setEditingLabelBoxId(null); }}
                             className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition active:scale-95"
                           >
-                            Change State
+                            {t('changeState')}
                           </button>
                         )}
                       </div>
@@ -366,14 +346,12 @@ export default function ProjectManagement() {
                             onChange={(e) => setNewState(e.target.value as BoxState)}
                             className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                           >
-                            {stateOptions.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
+                            {stateValues.map((s) => (
+                              <option key={s} value={s}>{tStates(s)}</option>
                             ))}
                           </select>
                           <textarea
-                            placeholder="Reason for change *"
+                            placeholder={t('reasonForChange')}
                             value={overrideReason}
                             onChange={(e) => setOverrideReason(e.target.value)}
                             className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
@@ -385,13 +363,13 @@ export default function ProjectManagement() {
                               disabled={overridingState || !overrideReason.trim()}
                               className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                             >
-                              {overridingState ? 'Updating...' : 'Confirm Change'}
+                              {overridingState ? tCommon('updating') : t('confirmChange')}
                             </button>
                             <button
                               onClick={() => setSelectedBoxId(null)}
                               className="flex-1 sm:flex-initial px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
                             >
-                              Cancel
+                              {tCommon('cancel')}
                             </button>
                           </div>
                         </div>
@@ -399,32 +377,30 @@ export default function ProjectManagement() {
 
                       {editingLabelBoxId === box.id && (
                         <div className="mt-4 pt-4 border-t border-slate-600 space-y-3">
-                          <label className="block text-sm font-medium text-slate-300">Edit Description</label>
+                          <label className="block text-sm font-medium text-slate-300">{t('editDescription')}</label>
                           <input
                             type="text"
                             value={editingLabelValue}
                             onChange={(e) => setEditingLabelValue(e.target.value)}
-                            placeholder="Box label..."
+                            placeholder={t('boxLabelPlaceholder')}
                             className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             onKeyDown={(e) => { if (e.key === 'Enter') saveLabel(box.id); if (e.key === 'Escape') setEditingLabelBoxId(null); }}
                             autoFocus
                           />
-                          {labelError && (
-                            <p className="text-sm text-red-400">{labelError}</p>
-                          )}
+                          {labelError && <p className="text-sm text-red-400">{labelError}</p>}
                           <div className="flex gap-2">
                             <button
                               onClick={() => saveLabel(box.id)}
                               disabled={savingLabel}
                               className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
                             >
-                              {savingLabel ? 'Saving...' : 'Save'}
+                              {savingLabel ? tCommon('saving') : tCommon('save')}
                             </button>
                             <button
                               onClick={() => setEditingLabelBoxId(null)}
                               className="flex-1 sm:flex-initial px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
                             >
-                              Cancel
+                              {tCommon('cancel')}
                             </button>
                           </div>
                         </div>
@@ -434,15 +410,14 @@ export default function ProjectManagement() {
                 })}
               </div>
             ) : (
-              <p className="text-slate-400">No boxes in this project yet.</p>
+              <p className="text-slate-400">{t('noBoxes')}</p>
             )}
           </div>
         </div>
 
-        {/* User Management */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
           <div className="p-6">
-            <h2 className="text-xl font-bold text-slate-50 mb-4">👥 Assign Users</h2>
+            <h2 className="text-xl font-bold text-slate-50 mb-4">{t('assignUsers')}</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <select
@@ -450,13 +425,11 @@ export default function ProjectManagement() {
                   onChange={(e) => setSelectedUserId(e.target.value)}
                   className="px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Select user...</option>
+                  <option value="">{t('selectUser')}</option>
                   {users
                     .filter((u) => !projectUsers.find((pu) => pu.userId === u.id))
                     .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.email}
-                      </option>
+                      <option key={u.id} value={u.id}>{u.email}</option>
                     ))}
                 </select>
                 <select
@@ -464,10 +437,8 @@ export default function ProjectManagement() {
                   onChange={(e) => setSelectedRole(e.target.value)}
                   className="px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {roleOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
+                  {roleValues.map((role) => (
+                    <option key={role} value={role}>{roleLabels[role]}</option>
                   ))}
                 </select>
               </div>
@@ -476,7 +447,7 @@ export default function ProjectManagement() {
                 disabled={loading || !selectedUserId}
                 className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
               >
-                {loading ? 'Assigning...' : 'Assign User'}
+                {loading ? tCommon('assigning') : t('assignUser')}
               </button>
               {assignmentError && (
                 <p className="text-sm text-red-400 bg-red-950 border border-red-800 p-3 rounded-lg">
@@ -484,24 +455,19 @@ export default function ProjectManagement() {
                 </p>
               )}
               {users.length === 0 && (
-                <p className="text-sm text-slate-400">
-                  No users available. Create a project and login first.
-                </p>
+                <p className="text-sm text-slate-400">{t('noUsersAvailable')}</p>
               )}
               {projectUsers.length > 0 &&
                 users.filter((u) => !projectUsers.find((pu) => pu.userId === u.id)).length === 0 && (
-                  <p className="text-sm text-slate-400">
-                    All available users are already assigned to this project.
-                  </p>
+                  <p className="text-sm text-slate-400">{t('allUsersAssigned')}</p>
                 )}
             </div>
           </div>
         </div>
 
-        {/* Project Users */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
           <div className="p-6">
-            <h2 className="text-xl font-bold text-slate-50 mb-4">Team Members</h2>
+            <h2 className="text-xl font-bold text-slate-50 mb-4">{t('teamMembers')}</h2>
             {projectUsers.length > 0 ? (
               <div className="space-y-2">
                 {projectUsers.map((pu) => (
@@ -513,19 +479,19 @@ export default function ProjectManagement() {
                       {pu.user?.name && pu.user?.email && (
                         <div className="text-xs text-slate-500 truncate">{pu.user.email}</div>
                       )}
-                      <div className="text-sm text-slate-400 capitalize">{pu.role.replace(/_/g, ' ')}</div>
+                      <div className="text-sm text-slate-400">{roleDisplayLabels[pu.role] || pu.role.replace(/_/g, ' ')}</div>
                     </div>
                     <button
                       onClick={() => removeUser(pu.userId)}
                       className="ml-4 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-900 hover:bg-opacity-20 rounded-lg font-medium transition text-sm"
                     >
-                      Remove
+                      {tCommon('remove')}
                     </button>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-slate-400">No users assigned to this project yet.</p>
+              <p className="text-slate-400">{t('noUsersAssigned')}</p>
             )}
           </div>
         </div>
