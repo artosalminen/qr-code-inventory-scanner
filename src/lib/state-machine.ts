@@ -22,11 +22,21 @@ export function isValidTransition(
   const transition = validTransitions.find(
     (t) => t.from === currentState && t.action === action,
   );
+  if (!transition) return false;
+  return transition.requiredRoles.includes(userRole);
+}
 
-  if (!transition) {
-    return false;
-  }
+export function isValidStateForAction(currentState: BoxState, action: ScanAction): boolean {
+  return validTransitions.some((t) => t.from === currentState && t.action === action);
+}
 
+export function isRoleAllowedForAction(
+  currentState: BoxState,
+  action: ScanAction,
+  userRole: UserRole,
+): boolean {
+  const transition = validTransitions.find((t) => t.action === action);
+  if (!transition) return false;
   return transition.requiredRoles.includes(userRole);
 }
 

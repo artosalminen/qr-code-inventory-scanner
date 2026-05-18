@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import prisma from '@/lib/db';
-import { isValidTransition, getTargetState } from '@/lib/state-machine';
+import { isValidTransition, isValidStateForAction, isRoleAllowedForAction, getTargetState } from '@/lib/state-machine';
 import { broadcastBoxStateChanged } from '@/lib/broadcast';
 import { ScanPayload, ScanAction, BoxState } from '@/types';
 
@@ -57,7 +57,13 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
         throw new Error('FORBIDDEN');
       }
 
-      // Validate transition
+      // Validate transition — separate state errors from role errors
+      if (!isValidStateForAction(currentState, action as ScanAction)) {
+        throw new Error('INVALID_STATE_FOR_ACTION');
+      }
+      if (!isRoleAllowedForAction(currentState, action as ScanAction, projectUser.role as any)) {
+        throw new Error('ROLE_NOT_ALLOWED');
+      }
       if (!isValidTransition(currentState, action as ScanAction, projectUser.role as any)) {
         throw new Error('INVALID_TRANSITION');
       }
@@ -137,6 +143,12 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     }
     if (error.message === 'FORBIDDEN') {
       return res.status(403).json({ error: 'Forbidden' });
+    }
+    if (error.message === 'INVALID_STATE_FOR_ACTION') {
+      return res.status(400).json({ error: 'Box is not in the right state for this action' });
+    }
+    if (error.message === 'ROLE_NOT_ALLOWED') {
+      return res.status(403).json({ error: 'Your role does not allow this action' });
     }
     if (error.message === 'INVALID_TRANSITION') {
       return res.status(400).json({ error: 'Invalid action for this box state' });
