@@ -244,20 +244,71 @@ export default function ScannerPage() {
               />
             </div>
 
-            {/* Status Message */}
-            {lastMessage && (
-              <div
-                className={`p-4 rounded-lg font-semibold flex items-center gap-3 transition ${
-                  lastMessageType === 'success'
-                    ? 'bg-green-900 border border-green-600 text-green-200'
-                    : 'bg-red-900 border border-red-600 text-red-200'
-                }`}
-              >
-                <span className="text-2xl">
-                  {lastMessageType === 'success' ? '✓' : '✗'}
-                </span>
-                <span>{lastMessage}</span>
+            {/* Add Box Form — shown on unknown scan or manual add */}
+            {addBoxFormOpen ? (
+              <div className="bg-slate-700 border border-green-600 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-semibold text-slate-50">Add New Box</h3>
+                  <button
+                    onClick={() => setAddBoxFormOpen(false)}
+                    className="text-slate-400 hover:text-slate-200 transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">QR Code *</label>
+                  <input
+                    type="text"
+                    value={addBoxQr}
+                    onChange={(e) => setAddBoxQr(e.target.value)}
+                    placeholder="QR code..."
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Label (optional)</label>
+                  <input
+                    type="text"
+                    value={addBoxLabel}
+                    onChange={(e) => setAddBoxLabel(e.target.value)}
+                    placeholder="Human-readable label..."
+                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+                <div className="text-xs text-slate-400 bg-slate-600 rounded-lg px-3 py-2">
+                  Condition: <span className="text-slate-200 font-medium capitalize">{condition}</span>
+                  {notes && <> · Notes: <span className="text-slate-200 font-medium">{notes}</span></>}
+                </div>
+                {addBoxError && (
+                  <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-3 py-2">
+                    {addBoxError}
+                  </p>
+                )}
+                <button
+                  onClick={handleAddBox}
+                  disabled={isAddingBox || !addBoxQr.trim()}
+                  className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95"
+                >
+                  {isAddingBox ? 'Adding...' : 'Add & Check In'}
+                </button>
               </div>
+            ) : (
+              /* Status Message */
+              lastMessage && (
+                <div
+                  className={`p-4 rounded-lg font-semibold flex items-center gap-3 transition ${
+                    lastMessageType === 'success'
+                      ? 'bg-green-900 border border-green-600 text-green-200'
+                      : 'bg-red-900 border border-red-600 text-red-200'
+                  }`}
+                >
+                  <span className="text-2xl">
+                    {lastMessageType === 'success' ? '✓' : '✗'}
+                  </span>
+                  <span>{lastMessage}</span>
+                </div>
+              )
             )}
 
             {/* QR Scanner Component */}
@@ -292,6 +343,22 @@ export default function ScannerPage() {
                 </>
               )}
             </button>
+
+            {/* Manual Add Box Button */}
+            {canAddBoxes && !addBoxFormOpen && (
+              <button
+                onClick={() => {
+                  setAddBoxFormOpen(true);
+                  setAddBoxQr('');
+                  setAddBoxLabel('');
+                  setAddBoxError('');
+                }}
+                className="w-full px-4 py-3 bg-slate-700 hover:bg-slate-600 border border-dashed border-slate-500 text-slate-300 rounded-lg font-medium transition flex items-center justify-center gap-2"
+              >
+                <span>➕</span>
+                Add Box Manually
+              </button>
+            )}
 
             {/* Touch Hint for Mobile */}
             <div className="text-center text-xs text-slate-400 bg-slate-700 rounded-lg p-3">
