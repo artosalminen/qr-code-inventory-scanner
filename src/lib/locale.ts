@@ -3,8 +3,8 @@ import { createContext } from 'react';
 export type Locale = 'en' | 'fi';
 
 export interface LocaleContextType {
-  locale: string;
-  setLocale: (locale: string) => void;
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
 }
 
 export const LocaleContext = createContext<LocaleContextType>({
@@ -18,6 +18,6 @@ export const getStoredLocale = (): Locale => {
   return stored === 'fi' ? 'fi' : 'en';
 };
 
-export const setStoredLocale = (locale: string): void => {
+export const setStoredLocale = (locale: Locale): void => {
   localStorage.setItem('locale', locale);
 };
