@@ -215,23 +215,42 @@ Deployment is automated via Vercel on push to `main`. Workflow:
 1. Push to GitHub (main branch)
 2. Vercel automatically detects the push
 3. Vercel builds Next.js app
-4. Run Prisma migrations via postbuild script
-5. Deploy to Vercel edge network
-6. Custom domain redirects traffic (if configured)
+4. Deploy to Vercel edge network
+5. Custom domain redirects traffic (if configured)
+
+**Note:** `postbuild` migration was removed. `prisma migrate deploy` through Vercel's build environment times out on the Prisma Postgres pooled connection (P1002 advisory lock error). Migrations must be run manually — see "Running Prisma migrations" below.
 
 **Setup:**
 1. Link GitHub repository to vercel.com
 2. Configure environment variables in Vercel dashboard:
-   - `DATABASE_URL` → Prisma Postgres connection string
+   - `DATABASE_URL` → Prisma Postgres pooled connection string
+   - `DIRECT_URL` → Prisma Postgres direct (non-pooled) connection string
    - `NEXTAUTH_URL` → Your Vercel domain (e.g., `https://project.vercel.app`)
    - `NEXTAUTH_SECRET` → Generate: `openssl rand -base64 32`
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` → From Google OAuth Console
+   - `NEXT_PUBLIC_ENABLE_SOCKET` → Set to `true` only on servers with a persistent Node.js runtime (not Vercel). Leave unset on Vercel.
 3. Update Google OAuth redirect URIs to include Vercel domain
 4. Push to main → Vercel auto-deploys
 
-See `docs/VERCEL_DEPLOYMENT.md` for complete setup and troubleshooting.
-
 **Rollback:** Revert commit on GitHub and push — Vercel automatically re-deploys previous version. Preview deployments are available for each commit.
+
+### Running Prisma migrations
+
+Migrations are **not** run automatically on Vercel deploy. Run them manually whenever `prisma/schema.prisma` changes:
+
+```bash
+# Add DIRECT_URL to your .env.local (direct connection, not pooled)
+# Then run:
+npx prisma migrate deploy
+```
+
+Or inline without modifying .env.local:
+
+```bash
+DIRECT_URL="postgresql://user:password@direct-host:5432/postgres" npx prisma migrate deploy
+```
+
+**Why direct URL?** `prisma migrate deploy` uses a PostgreSQL advisory lock (`pg_advisory_lock`) which is not supported through connection poolers. The pooled endpoint (`pooled.db.prisma.io`) causes a P1002 timeout. The direct URL bypasses the pooler and connects straight to the database.
 
 ## Common Tasks
 
