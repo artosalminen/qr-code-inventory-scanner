@@ -13,10 +13,13 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     return; // Response already sent by withAuth
   }
 
-  const [dbUser, adminRole] = await Promise.all([
+  const [dbUser, adminRole, scanRole] = await Promise.all([
     prisma.user.findUnique({ where: { id: req.userId } }),
     prisma.projectUser.findFirst({
       where: { userId: req.userId, role: 'admin' },
+    }),
+    prisma.projectUser.findFirst({
+      where: { userId: req.userId, role: { not: 'read_only' } },
     }),
   ]);
 
@@ -29,5 +32,6 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     email: dbUser.email,
     name: dbUser.name,
     isAdmin: !!adminRole,
+    canScan: !!scanRole,
   });
 }
