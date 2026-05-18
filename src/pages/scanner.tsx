@@ -19,6 +19,11 @@ export default function ScannerPage() {
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [addBoxFormOpen, setAddBoxFormOpen] = useState(false);
+  const [addBoxQr, setAddBoxQr] = useState('');
+  const [addBoxLabel, setAddBoxLabel] = useState('');
+  const [addBoxError, setAddBoxError] = useState('');
+  const [isAddingBox, setIsAddingBox] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -35,6 +40,13 @@ export default function ScannerPage() {
       fetchProjectRole(selectedProjectId);
     }
   }, [selectedProjectId, session]);
+
+  useEffect(() => {
+    setAddBoxFormOpen(false);
+    setAddBoxQr('');
+    setAddBoxLabel('');
+    setAddBoxError('');
+  }, [selectedProjectId, scanMode]);
 
   async function fetchProjectRole(projectId: string) {
     try {
@@ -83,11 +95,44 @@ export default function ScannerPage() {
         setScannerOpen(true);
       }, 1500);
     } catch (error: any) {
-      const message = error.response?.data?.error || 'Scan failed';
-      setLastMessage(message);
-      setLastMessageType('error');
+      const isNotFound = error.response?.status === 404;
+      if (isNotFound && canAddBoxes) {
+        setAddBoxFormOpen(true);
+        setAddBoxQr(qrCode);
+        setAddBoxLabel('');
+        setAddBoxError('');
+        setScannerOpen(false);
+      } else {
+        const message = error.response?.data?.error || 'Scan failed';
+        setLastMessage(message);
+        setLastMessageType('error');
+      }
     } finally {
       setIsProcessing(false);
+    }
+  }
+
+  async function handleAddBox() {
+    if (!addBoxQr.trim() || !selectedProjectId || isAddingBox) return;
+    setIsAddingBox(true);
+    setAddBoxError('');
+    try {
+      await axios.post(`/api/projects/${selectedProjectId}/boxes`, {
+        qrCode: addBoxQr.trim(),
+        label: addBoxLabel.trim() || undefined,
+        condition,
+        notes: notes || undefined,
+      });
+      setLastMessage(`Box "${addBoxQr.trim()}" added and checked in`);
+      setLastMessageType('success');
+      setAddBoxFormOpen(false);
+      setAddBoxQr('');
+      setAddBoxLabel('');
+      setScannerOpen(false);
+    } catch (error: any) {
+      setAddBoxError(error.response?.data?.error || 'Failed to add box');
+    } finally {
+      setIsAddingBox(false);
     }
   }
 
