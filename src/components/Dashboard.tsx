@@ -35,11 +35,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [filterState, setFilterState] = useState<BoxState | 'all'>('all');
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  // State override
-  const [showStateOverride, setShowStateOverride] = useState(false);
-  const [newState, setNewState] = useState<BoxState>('received');
-  const [overrideReason, setOverrideReason] = useState('');
-  const [overridingState, setOverridingState] = useState(false);
 
   useEffect(() => {
     fetchBoxes();
@@ -76,9 +71,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
 
   async function handleSelectBox(box: BoxWithState) {
     setSelectedBox(box);
-    setShowStateOverride(false);
-    setNewState('received');
-    setOverrideReason('');
     try {
       const { data } = await axios.get(`/api/boxes/${box.id}`);
       setHistory(data.stateHistory || []);
@@ -87,27 +79,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
   }
 
-  async function overrideBoxState() {
-    if (!selectedBox || !newState || !overrideReason.trim()) return;
-    setOverridingState(true);
-    try {
-      await axios.post(`/api/boxes/${selectedBox.id}/state-override`, {
-        newState,
-        reason: overrideReason,
-      });
-      setShowStateOverride(false);
-      setOverrideReason('');
-      setNewState('received');
-      fetchBoxes();
-      if (selectedBox) {
-        handleSelectBox(selectedBox);
-      }
-    } catch (error) {
-      console.error('Failed to override state:', error);
-    } finally {
-      setOverridingState(false);
-    }
-  }
 
   function handleBoxStateChanged(payload: any) {
     // Update box list to reflect new state
@@ -222,45 +193,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
             </div>
 
             <div className="space-y-4">
-              {/* State Change Button */}
-              {userRole && ['admin', 'inventory_management'].includes(userRole) && (
-                <button
-                  onClick={() => setShowStateOverride(!showStateOverride)}
-                  className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition"
-                >
-                  {showStateOverride ? 'Cancel' : '🔄 Change State'}
-                </button>
-              )}
-
-              {/* State Override Form */}
-              {showStateOverride && (
-                <div className="bg-slate-700 border border-slate-600 p-4 rounded-lg space-y-3">
-                  <select
-                    value={newState}
-                    onChange={(e) => setNewState(e.target.value as BoxState)}
-                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="received">Received</option>
-                    <option value="in_use">In Use</option>
-                    <option value="ready_for_checkout">Ready for Checkout</option>
-                    <option value="departed">Departed</option>
-                  </select>
-                  <textarea
-                    placeholder="Reason for change *"
-                    value={overrideReason}
-                    onChange={(e) => setOverrideReason(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                    rows={2}
-                  />
-                  <button
-                    onClick={overrideBoxState}
-                    disabled={overridingState || !overrideReason.trim()}
-                    className="w-full px-3 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
-                  >
-                    {overridingState ? 'Updating...' : 'Confirm Change'}
-                  </button>
-                </div>
-              )}
 
               {/* History */}
               <div className="space-y-3">
