@@ -66,6 +66,7 @@ export interface BoxStateHistory {
   notes: string | null;
   brokenItems: string | null;
   installationUser: string | null;
+  imageUrls: string[];
   createdAt: Date;
 }
 
@@ -99,4 +100,5 @@ export interface ScanResponse {
   newState: BoxState | null;
   message: string;
   timestamp: Date;
+  historyId?: string;
 }

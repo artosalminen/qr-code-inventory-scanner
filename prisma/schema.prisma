@@ -127,6 +127,8 @@ model BoxStateHistory {
   brokenItems       String?  @map("broken_items") // Free-text list of damaged items
   notes             String?
 
+  imageUrls         String[] @default([]) @map("image_urls")
+
   createdAt         DateTime @default(now()) @map("created_at")
 
   // Relations

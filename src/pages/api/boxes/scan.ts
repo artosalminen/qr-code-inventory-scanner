@@ -135,6 +135,7 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
       success: true,
       box: result.box,
       newState: result.stateHistory.state,
+      historyId: result.stateHistory.id,
       timestamp: result.stateHistory.createdAt,
     });
   } catch (error: any) {
