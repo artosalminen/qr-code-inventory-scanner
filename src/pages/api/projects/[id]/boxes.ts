@@ -90,14 +90,14 @@ async function handlePost(req: AuthenticatedRequest, res: NextApiResponse) {
       },
     });
 
-    // Create initial state history entry (RECEIVED state)
+    // Create initial state history entry (EXPECTED state)
     await prisma.boxStateHistory.create({
       data: {
         boxId: box.id,
-        state: 'received',
+        state: 'expected',
         stateSetBy: req.userId,
         changeType: 'state_change',
-        condition: condition || null,
+        condition: null,
         notes: notes || null,
       },
     });
