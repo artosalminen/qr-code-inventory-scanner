@@ -8,6 +8,10 @@ export function useSocket() {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
+    // Socket.io requires a persistent Node.js server — not available on Vercel.
+    // Only connect when NEXT_PUBLIC_ENABLE_SOCKET=true is explicitly set.
+    if (process.env.NEXT_PUBLIC_ENABLE_SOCKET !== 'true') return;
+
     async function init() {
       try {
         if (!initCalled) {
@@ -19,11 +23,10 @@ export function useSocket() {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            // Stop after 3 attempts — avoids console spam on Vercel/serverless
             reconnectionAttempts: 3,
           });
           socketInstance.on('connect_error', () => {
-            // Real-time unavailable — app continues with manual refresh
+            // Real-time unavailable — app continues without live updates
           });
         }
         setSocket(socketInstance);
