@@ -175,7 +175,7 @@ export default function ScannerPage() {
     try {
       await axios.post(`/api/projects/${selectedProjectId}/boxes`, {
         qrCode: addBoxQr.trim(),
-        label: addBoxLabel.trim() || undefined,
+        description: addBoxLabel.trim() || undefined,
         condition,
         notes: notes || undefined,
       });
@@ -328,8 +328,8 @@ export default function ScannerPage() {
                     <input type="text" value={addBoxQr} onChange={(e) => setAddBoxQr(e.target.value)} placeholder="QR code..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Label (optional)</label>
-                    <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder="Human-readable label..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Description (optional)</label>
+                    <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder="Human-readable description..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div className="text-xs text-slate-400 bg-slate-600 rounded-lg px-3 py-2">
                     Condition: <span className="text-slate-200 font-medium capitalize">{condition}</span>
@@ -434,8 +434,8 @@ export default function ScannerPage() {
                     <input type="text" value={addBoxQr} onChange={(e) => setAddBoxQr(e.target.value)} placeholder="QR code..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">Label (optional)</label>
-                    <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder="Human-readable label..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Description (optional)</label>
+                    <input type="text" value={addBoxLabel} onChange={(e) => setAddBoxLabel(e.target.value)} placeholder="Human-readable description..." className="w-full px-3 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500" />
                   </div>
                   <div className="text-xs text-slate-400 bg-slate-600 rounded-lg px-3 py-2">
                     Condition: <span className="text-slate-200 font-medium">OK</span>
