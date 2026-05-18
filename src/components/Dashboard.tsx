@@ -214,9 +214,9 @@ export default function Dashboard({ projectId }: DashboardProps) {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-lg sm:text-2xl font-bold text-slate-50">
-                  {selectedBox.label || 'Unlabeled'}
+                  {selectedBox.qrCode}
                 </h3>
-                <p className="text-slate-400 text-sm mt-1">{selectedBox.qrCode}</p>
+                <p className="text-slate-400 text-sm mt-1">{selectedBox.label || 'Unlabeled'}</p>
               </div>
               <div className="flex items-center gap-1">
                 {userRole && ['admin', 'inventory_management'].includes(userRole) && (
@@ -285,7 +285,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
             <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
               <div className="flex items-center justify-between p-6 border-b border-slate-700">
                 <h2 className="text-lg font-bold text-slate-50">
-                  Edit — {selectedBox?.label || selectedBox?.qrCode}
+                  Edit — {selectedBox?.qrCode || selectedBox?.label}
                 </h2>
                 <button
                   onClick={() => setEditModalOpen(false)}
