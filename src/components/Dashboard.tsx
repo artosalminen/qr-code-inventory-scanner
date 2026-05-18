@@ -34,6 +34,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [history, setHistory] = useState<BoxStateHistory[]>([]);
   const [filterState, setFilterState] = useState<BoxState | 'all'>('all');
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editState, setEditState] = useState<BoxState>('received');
+  const [editCondition, setEditCondition] = useState('ok');
+  const [editNotes, setEditNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
 
   useEffect(() => {
@@ -79,6 +85,34 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
   }
 
+
+  function handleOpenEdit() {
+    setEditState((selectedBox?.currentState || 'received') as BoxState);
+    setEditCondition(history[0]?.condition ?? 'ok');
+    setEditNotes('');
+    setEditError('');
+    setEditModalOpen(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedBox || isSaving) return;
+    setIsSaving(true);
+    setEditError('');
+    try {
+      await axios.post(`/api/boxes/${selectedBox.id}/state-override`, {
+        newState: editState,
+        condition: editCondition,
+        notes: editNotes || undefined,
+      });
+      setEditModalOpen(false);
+      fetchBoxes();
+      handleSelectBox(selectedBox);
+    } catch (error: any) {
+      setEditError(error.response?.data?.error || 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   function handleBoxStateChanged(payload: any) {
     // Update box list to reflect new state
@@ -184,12 +218,23 @@ export default function Dashboard({ projectId }: DashboardProps) {
                 </h3>
                 <p className="text-slate-400 text-sm mt-1">{selectedBox.qrCode}</p>
               </div>
-              <button
-                onClick={() => setSelectedBox(null)}
-                className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-1">
+                {userRole && ['admin', 'inventory_management'].includes(userRole) && (
+                  <button
+                    onClick={handleOpenEdit}
+                    className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition"
+                    title="Edit box"
+                  >
+                    ✏️
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedBox(null)}
+                  className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
