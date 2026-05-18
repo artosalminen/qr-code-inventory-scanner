@@ -51,6 +51,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
   }, [projectId, session]);
 
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_ENABLE_SOCKET === 'true') return;
+    const interval = setInterval(fetchBoxes, 10000);
+    return () => clearInterval(interval);
+  }, [projectId]);
+
   async function fetchBoxes() {
     try {
       const { data } = await axios.get(`/api/projects/${projectId}/boxes`);
