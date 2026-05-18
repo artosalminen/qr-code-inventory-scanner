@@ -1,7 +1,8 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,13 +12,22 @@ export default function Layout({ children }: LayoutProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const isActive = (path: string) => router.pathname === path;
+
+  useEffect(() => {
+    if (session?.user) {
+      axios.get('/api/auth/user')
+        .then((res) => setIsAdmin(res.data.isAdmin ?? false))
+        .catch(() => setIsAdmin(false));
+    }
+  }, [session]);
 
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: '📊' },
     { label: 'Scanner', path: '/scanner', icon: '📱' },
-    { label: 'Admin', path: '/admin', icon: '⚙️' },
+    ...(isAdmin ? [{ label: 'Admin', path: '/admin', icon: '⚙️' }] : []),
   ];
 
   return (
