@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
+import { useTranslations } from 'next-intl';
 import { Box, BoxState, BoxStateHistory, ProjectUser } from '@/types';
 import RealtimeSync from './RealtimeSync';
 
@@ -16,14 +17,6 @@ const stateColors: Record<BoxState, string> = {
   departed: 'bg-green-900 border-green-500 hover:bg-green-800',
 };
 
-const stateLabels: Record<BoxState, string> = {
-  expected: 'Expected',
-  received: 'Received',
-  in_use: 'In Use',
-  ready_for_checkout: 'Ready for Checkout',
-  departed: 'Departed',
-};
-
 interface BoxWithState extends Box {
   currentState?: BoxState;
   stateHistory?: BoxStateHistory[];
@@ -31,6 +24,10 @@ interface BoxWithState extends Box {
 
 export default function Dashboard({ projectId }: DashboardProps) {
   const { data: session } = useSession();
+  const t = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
+  const tStates = useTranslations('states');
+
   const [boxes, setBoxes] = useState<BoxWithState[]>([]);
   const [selectedBox, setSelectedBox] = useState<BoxWithState | null>(null);
   const [history, setHistory] = useState<BoxStateHistory[]>([]);
@@ -42,7 +39,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [editNotes, setEditNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
-
 
   useEffect(() => {
     fetchBoxes();
@@ -93,7 +89,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
   }
 
-
   function handleOpenEdit() {
     setEditState((selectedBox?.currentState || 'received') as BoxState);
     setEditCondition(history[0]?.condition ?? 'ok');
@@ -116,20 +111,18 @@ export default function Dashboard({ projectId }: DashboardProps) {
       fetchBoxes();
       handleSelectBox(selectedBox);
     } catch (error: any) {
-      setEditError(error.response?.data?.error || 'Failed to save changes');
+      setEditError(error.response?.data?.error || t('saveFailed'));
     } finally {
       setIsSaving(false);
     }
   }
 
   function handleBoxStateChanged(payload: any) {
-    // Update box list to reflect new state
     setBoxes((prev) =>
       prev.map((b) =>
         b.id === payload.boxId ? { ...b, currentState: payload.newState as BoxState } : b,
       ),
     );
-    // Update selected box if it was changed
     if (selectedBox?.id === payload.boxId) {
       setSelectedBox((prev) =>
         prev ? { ...prev, currentState: payload.newState as BoxState } : null,
@@ -156,27 +149,27 @@ export default function Dashboard({ projectId }: DashboardProps) {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
         <div className="bg-slate-800 border border-slate-700 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">Total</div>
+          <div className="text-slate-400 text-xs sm:text-sm">{t('total')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-slate-50 mt-2">{stats.total}</div>
         </div>
         <div className="bg-slate-800 border border-purple-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">Expected</div>
+          <div className="text-slate-400 text-xs sm:text-sm">{tStates('expected')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-purple-400 mt-2">{stats.expected}</div>
         </div>
         <div className="bg-slate-800 border border-blue-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">Received</div>
+          <div className="text-slate-400 text-xs sm:text-sm">{tStates('received')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-blue-400 mt-2">{stats.received}</div>
         </div>
         <div className="bg-slate-800 border border-yellow-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">In Use</div>
+          <div className="text-slate-400 text-xs sm:text-sm">{tStates('in_use')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-yellow-400 mt-2">{stats.inUse}</div>
         </div>
         <div className="bg-slate-800 border border-orange-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">Ready</div>
+          <div className="text-slate-400 text-xs sm:text-sm">{tStates('ready')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-orange-400 mt-2">{stats.readyForCheckout}</div>
         </div>
         <div className="bg-slate-800 border border-green-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">Departed</div>
+          <div className="text-slate-400 text-xs sm:text-sm">{tStates('departed')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-green-400 mt-2">{stats.departed}</div>
         </div>
       </div>
@@ -193,7 +186,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
             }`}
           >
-            {state === 'all' ? 'All' : stateLabels[state]}
+            {state === 'all' ? tStates('all') : tStates(state)}
           </button>
         ))}
       </div>
@@ -208,16 +201,14 @@ export default function Dashboard({ projectId }: DashboardProps) {
               onClick={() => handleSelectBox(box)}
               className={`p-4 sm:p-6 rounded-lg border-2 cursor-pointer transition active:scale-95 text-left ${
                 stateColors[currentState]
-              } ${
-                selectedBox?.id === box.id ? 'ring-2 ring-blue-400 bg-opacity-20' : ''
-              }`}
+              } ${selectedBox?.id === box.id ? 'ring-2 ring-blue-400 bg-opacity-20' : ''}`}
             >
               <div className="font-bold text-sm sm:text-base truncate text-slate-50">
                 {box.qrCode}
               </div>
               <div className="text-[10px] leading-tight text-slate-300 mt-1">{box.description || '-'}</div>
               <div className="mt-3 text-sm sm:text-base font-medium text-slate-50">
-                {stateLabels[currentState]}
+                {tStates(currentState)}
               </div>
             </button>
           );
@@ -240,7 +231,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
                   <button
                     onClick={handleOpenEdit}
                     className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition"
-                    title="Edit box"
+                    title={tCommon('edit')}
                   >
                     ✏️
                   </button>
@@ -255,27 +246,25 @@ export default function Dashboard({ projectId }: DashboardProps) {
             </div>
 
             <div className="space-y-4">
-
-              {/* History */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-slate-200 text-sm">State History</h4>
+                <h4 className="font-semibold text-slate-200 text-sm">{t('stateHistory')}</h4>
                 {history.length > 0 ? (
                   history.map((h) => (
                     <div key={h.id} className="bg-slate-700 border border-slate-600 p-4 rounded-lg">
-                      <div className="font-medium text-slate-50">{stateLabels[h.state as BoxState]}</div>
+                      <div className="font-medium text-slate-50">{tStates(h.state as BoxState)}</div>
                       <div className="text-xs text-slate-400 mt-1">
                         {new Date(h.createdAt).toLocaleString()}
                       </div>
                       {h.notes && <div className="mt-2 text-slate-300 text-sm">{h.notes}</div>}
                       {h.condition && (
                         <div className="text-xs font-medium text-slate-400 mt-1">
-                          Condition: {h.condition}
+                          {tCommon('condition')}: {h.condition}
                         </div>
                       )}
                     </div>
                   ))
                 ) : (
-                  <div className="text-slate-400 text-sm">No history available</div>
+                  <div className="text-slate-400 text-sm">{t('noHistory')}</div>
                 )}
               </div>
             </div>
@@ -283,7 +272,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
         </div>
       )}
 
-      {/* Mobile overlay when details open */}
       {selectedBox && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-30 sm:hidden"
@@ -294,15 +282,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
       {/* Edit Modal */}
       {editModalOpen && (
         <>
-          <div
-            className="fixed inset-0 bg-black/60 z-50"
-            onClick={() => setEditModalOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setEditModalOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
               <div className="flex items-center justify-between p-6 border-b border-slate-700">
                 <h2 className="text-lg font-bold text-slate-50">
-                  Edit — {selectedBox?.qrCode || selectedBox?.label}
+                  {t('editTitle', { label: selectedBox?.qrCode || selectedBox?.label || '' })}
                 </h2>
                 <button
                   onClick={() => setEditModalOpen(false)}
@@ -313,48 +298,43 @@ export default function Dashboard({ projectId }: DashboardProps) {
               </div>
               <div className="p-6 space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">State</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t('stateLabel')}</label>
                   <select
                     value={editState}
                     onChange={(e) => setEditState(e.target.value as BoxState)}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="expected">Expected</option>
-                    <option value="received">Received</option>
-                    <option value="in_use">In Use</option>
-                    <option value="ready_for_checkout">Ready for Checkout</option>
-                    <option value="departed">Departed</option>
+                    {(['expected', 'received', 'in_use', 'ready_for_checkout', 'departed'] as BoxState[]).map((s) => (
+                      <option key={s} value={s}>{tStates(s)}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Condition</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t('conditionLabel')}</label>
                   <div className="flex gap-3">
-                    {[
-                      { value: 'ok', label: '✓ OK' },
-                      { value: 'damaged', label: '⚠️ Damaged' },
-                    ].map((opt) => (
+                    {(['ok', 'damaged'] as const).map((val) => (
                       <button
-                        key={opt.value}
-                        onClick={() => setEditCondition(opt.value)}
+                        key={val}
+                        onClick={() => setEditCondition(val)}
                         className={`flex-1 px-4 py-2 rounded-lg font-medium transition text-sm ${
-                          editCondition === opt.value
+                          editCondition === val
                             ? 'bg-blue-600 text-white'
                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                         }`}
                       >
-                        {opt.label}
+                        {val === 'ok' ? tCommon('conditionOk') : tCommon('conditionDamaged')}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Notes (optional)</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">{t('notesOptional')}</label>
                   <textarea
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     rows={3}
-                    placeholder="Describe the change..."
+                    placeholder={t('describeChange')}
                   />
                 </div>
                 {editError && (
@@ -368,14 +348,14 @@ export default function Dashboard({ projectId }: DashboardProps) {
                   onClick={() => setEditModalOpen(false)}
                   className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition"
                 >
-                  Cancel
+                  {tCommon('cancel')}
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   disabled={isSaving}
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                 >
-                  {isSaving ? 'Saving...' : 'Save'}
+                  {isSaving ? tCommon('saving') : tCommon('save')}
                 </button>
               </div>
             </div>
