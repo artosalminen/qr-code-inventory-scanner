@@ -185,7 +185,7 @@ export default function ProjectManagement() {
       setEditingLabelBoxId(null);
       fetchProjectData();
     } catch (error: any) {
-      setLabelError(error.response?.data?.error || 'Failed to save label');
+      setLabelError(error.response?.data?.error || t('saveLabelFailed'));
     } finally {
       setSavingLabel(false);
     }

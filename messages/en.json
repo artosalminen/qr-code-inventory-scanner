@@ -125,6 +125,7 @@
     "noUsersAssigned": "No users assigned to this project yet.",
     "loadingProject": "Loading project...",
     "assignFailed": "Failed to assign user",
+    "saveLabelFailed": "Failed to save label",
     "roleReadOnly": "Read-only",
     "roleInstallation": "Installation",
     "roleInventoryMgmt": "Inventory Mgmt",

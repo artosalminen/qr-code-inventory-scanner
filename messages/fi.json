@@ -125,6 +125,7 @@
     "noUsersAssigned": "Ei käyttäjiä lisätty tähän projektiin vielä.",
     "loadingProject": "Ladataan projektia...",
     "assignFailed": "Käyttäjän lisääminen epäonnistui",
+    "saveLabelFailed": "Nimiön tallentaminen epäonnistui",
     "roleReadOnly": "Vain luku",
     "roleInstallation": "Asennus",
     "roleInventoryMgmt": "Varastonhallinta",
