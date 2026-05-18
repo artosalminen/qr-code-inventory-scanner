@@ -13,9 +13,12 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     return; // Response already sent by withAuth
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: req.userId },
-  });
+  const [dbUser, adminRole] = await Promise.all([
+    prisma.user.findUnique({ where: { id: req.userId } }),
+    prisma.projectUser.findFirst({
+      where: { userId: req.userId, role: 'admin' },
+    }),
+  ]);
 
   if (!dbUser) {
     return res.status(404).json({ error: 'User not found' });
@@ -25,5 +28,6 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     id: dbUser.id,
     email: dbUser.email,
     name: dbUser.name,
+    isAdmin: !!adminRole,
   });
 }
