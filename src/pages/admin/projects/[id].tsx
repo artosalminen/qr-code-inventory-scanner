@@ -56,6 +56,10 @@ export default function ProjectManagement() {
   const [newState, setNewState] = useState<BoxState>('received');
   const [overrideReason, setOverrideReason] = useState('');
   const [overridingState, setOverridingState] = useState(false);
+  const [editingLabelBoxId, setEditingLabelBoxId] = useState<string | null>(null);
+  const [editingLabelValue, setEditingLabelValue] = useState('');
+  const [savingLabel, setSavingLabel] = useState(false);
+  const [labelError, setLabelError] = useState('');
 
   useEffect(() => {
     if (typeof id === 'string' && session) {
@@ -177,6 +181,23 @@ export default function ProjectManagement() {
       console.error('Failed to override state:', error);
     } finally {
       setOverridingState(false);
+    }
+  }
+
+  async function saveLabel(boxId: string) {
+    if (!id || savingLabel) return;
+    setSavingLabel(true);
+    setLabelError('');
+    try {
+      await axios.patch(`/api/projects/${id}/boxes/${boxId}`, {
+        label: editingLabelValue,
+      });
+      setEditingLabelBoxId(null);
+      fetchProjectData();
+    } catch (error: any) {
+      setLabelError(error.response?.data?.error || 'Failed to save label');
+    } finally {
+      setSavingLabel(false);
     }
   }
 
@@ -304,9 +325,25 @@ export default function ProjectManagement() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-slate-50 truncate">{box.qrCode}</div>
-                          {box.label && (
-                            <div className="text-sm text-slate-400 truncate">{box.label}</div>
-                          )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-sm text-slate-400 truncate">
+                              {box.label || <span className="italic text-slate-500">No label</span>}
+                            </span>
+                            {canManageBoxes && (
+                              <button
+                                onClick={() => {
+                                  setEditingLabelBoxId(box.id);
+                                  setEditingLabelValue(box.label || '');
+                                  setLabelError('');
+                                  setSelectedBoxId(null);
+                                }}
+                                className="text-slate-500 hover:text-slate-300 transition shrink-0"
+                                title="Edit label"
+                              >
+                                ✏️
+                              </button>
+                            )}
+                          </div>
                           <div className="mt-2 inline-block">
                             <span className="px-3 py-1 rounded-full text-xs font-medium bg-slate-600 text-slate-200 capitalize">
                               {currentState}
@@ -315,7 +352,7 @@ export default function ProjectManagement() {
                         </div>
                         {canManageBoxes && (
                           <button
-                            onClick={() => setSelectedBoxId(box.id)}
+                            onClick={() => { setSelectedBoxId(box.id); setEditingLabelBoxId(null); }}
                             className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition active:scale-95"
                           >
                             Change State
@@ -353,6 +390,39 @@ export default function ProjectManagement() {
                             </button>
                             <button
                               onClick={() => setSelectedBoxId(null)}
+                              className="flex-1 sm:flex-initial px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {editingLabelBoxId === box.id && (
+                        <div className="mt-4 pt-4 border-t border-slate-600 space-y-3">
+                          <label className="block text-sm font-medium text-slate-300">Edit Label</label>
+                          <input
+                            type="text"
+                            value={editingLabelValue}
+                            onChange={(e) => setEditingLabelValue(e.target.value)}
+                            placeholder="Box label..."
+                            className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveLabel(box.id); if (e.key === 'Escape') setEditingLabelBoxId(null); }}
+                            autoFocus
+                          />
+                          {labelError && (
+                            <p className="text-sm text-red-400">{labelError}</p>
+                          )}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => saveLabel(box.id)}
+                              disabled={savingLabel}
+                              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
+                            >
+                              {savingLabel ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              onClick={() => setEditingLabelBoxId(null)}
                               className="flex-1 sm:flex-initial px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
                             >
                               Cancel
