@@ -11,6 +11,7 @@ const validTransitions: StateTransition[] = [
   { from: 'received', to: 'in_use', action: 'activate', requiredRoles: ['admin', 'inventory_management', 'installation'] },
   { from: 'in_use', to: 'ready_for_checkout', action: 'return', requiredRoles: ['admin', 'inventory_management', 'installation'] },
   { from: 'ready_for_checkout', to: 'departed', action: 'check_out', requiredRoles: ['admin', 'inventory_management'] },
+  { from: 'received', to: 'departed', action: 'check_out', requiredRoles: ['admin', 'inventory_management'] },
   { from: 'received', to: 'received', action: 'check_in', requiredRoles: ['admin', 'inventory_management'] },
 ];
 
@@ -35,9 +36,9 @@ export function isRoleAllowedForAction(
   action: ScanAction,
   userRole: UserRole,
 ): boolean {
-  const transition = validTransitions.find((t) => t.action === action);
-  if (!transition) return false;
-  return transition.requiredRoles.includes(userRole);
+  const transitions = validTransitions.filter((t) => t.action === action);
+  if (transitions.length === 0) return false;
+  return transitions.some((t) => t.requiredRoles.includes(userRole));
 }
 
 export function getTargetState(action: ScanAction, currentState: BoxState): BoxState | null {
