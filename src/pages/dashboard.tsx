@@ -5,12 +5,15 @@ import axios from 'axios';
 import Dashboard from '@/components/Dashboard';
 import Layout from '@/components/Layout';
 import { Project } from '@/types';
+import { useTranslations } from 'next-intl';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const t = useTranslations('dashboard');
+  const tCommon = useTranslations('common');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -37,7 +40,7 @@ export default function DashboardPage() {
   if (status === 'loading') {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">Loading...</div>
+        <div className="flex items-center justify-center min-h-screen">{tCommon('loading')}</div>
       </Layout>
     );
   }
@@ -47,8 +50,8 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">Dashboard</h1>
-            <p className="text-slate-400 mt-1">Track your box inventory in real-time</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{t('title')}</h1>
+            <p className="text-slate-400 mt-1">{t('subtitle')}</p>
           </div>
           <select
             value={selectedProjectId}
