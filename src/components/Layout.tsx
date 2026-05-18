@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
           setIsAdmin(res.data.isAdmin ?? false);
           setCanScan(res.data.canScan ?? true);
         })
-        .catch(() => setIsAdmin(false));
+        .catch(() => { setIsAdmin(false); setCanScan(true); });
     }
   }, [session]);
 

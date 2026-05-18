@@ -75,6 +75,9 @@ export default function ScannerPage() {
     setLastMessage('');
   }, [selectedProjectId, scanMode]);
 
+  // Reset to activate when role changes to installation and current mode is disabled.
+  // scanMode intentionally omitted from deps — reset only needed on role change, not every mode change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (userRole === 'installation' && ['check_in', 'check_out'].includes(scanMode)) {
       setScanMode('activate');
