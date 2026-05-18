@@ -1,7 +1,7 @@
 // src/types/index.ts
 export type UserRole = 'admin' | 'inventory_management' | 'installation' | 'read_only';
 
-export type BoxState = 'received' | 'in_use' | 'ready_for_checkout' | 'departed';
+export type BoxState = 'expected' | 'received' | 'in_use' | 'ready_for_checkout' | 'departed';
 
 export type ChangeType = 'scanned' | 'manual_override';
 
