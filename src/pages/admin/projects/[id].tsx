@@ -143,11 +143,9 @@ export default function ProjectManagement() {
     try {
       await axios.post(`/api/projects/${id}/boxes`, {
         qrCode: boxQrCode,
-        label: boxLabel,
         description: boxDescription,
       });
       setBoxQrCode('');
-      setBoxLabel('');
       setBoxDescription('');
       setShowAddBox(false);
       fetchProjectData();
@@ -198,7 +196,7 @@ export default function ProjectManagement() {
     setLabelError('');
     try {
       await axios.patch(`/api/projects/${id}/boxes/${boxId}`, {
-        label: editingLabelValue,
+        description: editingLabelValue,
       });
       setEditingLabelBoxId(null);
       fetchProjectData();
@@ -258,13 +256,6 @@ export default function ProjectManagement() {
                     placeholder="QR Code *"
                     value={boxQrCode}
                     onChange={(e) => setBoxQrCode(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Label (optional)"
-                    value={boxLabel}
-                    onChange={(e) => setBoxLabel(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <textarea
@@ -335,13 +326,13 @@ export default function ProjectManagement() {
                           <div className="font-semibold text-slate-50 truncate">{box.qrCode}</div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-sm text-slate-400 truncate">
-                              {box.label || <span className="italic text-slate-500">No label</span>}
+                              {box.description || <span className="italic text-slate-500">No description</span>}
                             </span>
                             {canManageBoxes && (
                               <button
                                 onClick={() => {
                                   setEditingLabelBoxId(box.id);
-                                  setEditingLabelValue(box.label || '');
+                                  setEditingLabelValue(box.description || '');
                                   setLabelError('');
                                   setSelectedBoxId(null);
                                 }}
@@ -408,7 +399,7 @@ export default function ProjectManagement() {
 
                       {editingLabelBoxId === box.id && (
                         <div className="mt-4 pt-4 border-t border-slate-600 space-y-3">
-                          <label className="block text-sm font-medium text-slate-300">Edit Label</label>
+                          <label className="block text-sm font-medium text-slate-300">Edit Description</label>
                           <input
                             type="text"
                             value={editingLabelValue}
