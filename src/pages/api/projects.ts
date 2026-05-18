@@ -45,6 +45,14 @@ async function handlePost(req: AuthenticatedRequest, res: NextApiResponse) {
   await withAuth(req, res);
   if (!req.userId) return;
 
+  const adminRole = await prisma.projectUser.findFirst({
+    where: { userId: req.userId, role: 'admin' },
+  });
+
+  if (!adminRole) {
+    return res.status(403).json({ error: 'Only admins can create projects' });
+  }
+
   const { name, description } = req.body;
 
   if (!name) {
