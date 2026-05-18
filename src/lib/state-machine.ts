@@ -8,8 +8,8 @@ export type StateTransition = {
 };
 
 const validTransitions: StateTransition[] = [
-  { from: 'received', to: 'in_use', action: 'activate', requiredRoles: ['admin', 'installation'] },
-  { from: 'in_use', to: 'ready_for_checkout', action: 'return', requiredRoles: ['admin', 'installation'] },
+  { from: 'received', to: 'in_use', action: 'activate', requiredRoles: ['admin', 'inventory_management', 'installation'] },
+  { from: 'in_use', to: 'ready_for_checkout', action: 'return', requiredRoles: ['admin', 'inventory_management', 'installation'] },
   { from: 'ready_for_checkout', to: 'departed', action: 'check_out', requiredRoles: ['admin', 'inventory_management'] },
   { from: 'received', to: 'received', action: 'check_in', requiredRoles: ['admin', 'inventory_management'] },
 ];
