@@ -20,7 +20,6 @@ async function handleGet(req: AuthenticatedRequest, res: NextApiResponse) {
         id: true,
         email: true,
         name: true,
-        image: true,
       },
       orderBy: { email: 'asc' },
     });
