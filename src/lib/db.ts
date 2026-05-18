@@ -1,12 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
-
-let prisma: PrismaClient;
-
 const initPrisma = () => {
   const databaseUrl = process.env.DATABASE_URL;
 
@@ -16,7 +9,7 @@ const initPrisma = () => {
     );
   }
 
-  console.log('Initializing Prisma Client with DATABASE_URL:', databaseUrl.substring(0, 50) + '...');
+  console.log('Initializing Prisma Client');
 
   return new PrismaClient({
     log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'error', 'warn'],
@@ -24,27 +17,29 @@ const initPrisma = () => {
   });
 };
 
-if (process.env.NODE_ENV === 'production') {
-  try {
-    prisma = initPrisma();
-  } catch (error) {
-    console.error('Failed to initialize Prisma in production:', error);
-    throw error;
-  }
-} else {
-  try {
+const prismaClientSingleton = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return initPrisma();
+  } else {
     if (!global.prisma) {
       global.prisma = initPrisma();
     }
-    prisma = global.prisma;
-  } catch (error) {
-    console.error('Failed to initialize Prisma in development:', error);
-    throw error;
+    return global.prisma;
   }
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var prisma: ReturnType<typeof initPrisma> | undefined;
 }
 
-if (!prisma) {
-  throw new Error('Prisma client failed to initialize');
+let prisma: ReturnType<typeof initPrisma>;
+
+try {
+  prisma = prismaClientSingleton();
+} catch (error) {
+  console.error('Prisma Client initialization error:', error);
+  throw error;
 }
 
 export default prisma;
