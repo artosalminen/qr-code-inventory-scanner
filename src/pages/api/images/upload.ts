@@ -7,10 +7,18 @@ export const config = {
   api: { bodyParser: false },
 };
 
+const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
+
 async function readBody(req: AuthenticatedRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
+  let total = 0;
   for await (const chunk of req as unknown as AsyncIterable<Buffer>) {
-    chunks.push(Buffer.from(chunk));
+    const buf = Buffer.from(chunk);
+    total += buf.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      throw new Error('FILE_TOO_LARGE');
+    }
+    chunks.push(buf);
   }
   return Buffer.concat(chunks);
 }
@@ -64,7 +72,10 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     ]);
 
     return res.status(200).json({ url: original.url, pathname: original.pathname });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'FILE_TOO_LARGE') {
+      return res.status(413).json({ error: 'File too large (max 10 MB)' });
+    }
     console.error('Upload error:', error);
     return res.status(500).json({ error: 'Upload failed' });
   }
