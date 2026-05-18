@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Layout from '@/components/Layout';
 import { Project } from '@/types';
+import { useTranslations } from 'next-intl';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -12,11 +13,11 @@ export default function AdminDashboard() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/');
-    }
+    if (status === 'unauthenticated') router.push('/');
   }, [status, router]);
 
   useEffect(() => {
@@ -27,9 +28,7 @@ export default function AdminDashboard() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  useEffect(() => { fetchProjects(); }, []);
 
   async function fetchProjects() {
     try {
@@ -42,7 +41,6 @@ export default function AdminDashboard() {
 
   async function createProject() {
     if (!newProjectName.trim()) return;
-
     setLoading(true);
     try {
       const { data } = await axios.post('/api/projects', {
@@ -65,7 +63,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin text-3xl mb-4">⌛</div>
-            <p className="text-slate-400">Loading...</p>
+            <p className="text-slate-400">{tCommon('loading')}</p>
           </div>
         </div>
       </Layout>
@@ -75,28 +73,26 @@ export default function AdminDashboard() {
   return (
     <Layout>
       <div className="space-y-8">
-        {/* Header */}
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">Admin Dashboard</h1>
-          <p className="text-slate-400 mt-2">Create and manage projects</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{t('title')}</h1>
+          <p className="text-slate-400 mt-2">{t('subtitle')}</p>
         </div>
 
-        {/* Create Project */}
         <div className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden">
           <div className="p-6">
-            <h2 className="text-xl font-bold text-slate-50 mb-4">✨ Create New Project</h2>
+            <h2 className="text-xl font-bold text-slate-50 mb-4">{t('createNewProject')}</h2>
             <div className="space-y-4">
               <input
                 type="text"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="Project name..."
+                placeholder={t('projectNamePlaceholder')}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <textarea
                 value={newProjectDescription}
                 onChange={(e) => setNewProjectDescription(e.target.value)}
-                placeholder="Project description (optional)..."
+                placeholder={t('projectDescPlaceholder')}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows={3}
               />
@@ -105,16 +101,15 @@ export default function AdminDashboard() {
                 disabled={loading || !newProjectName.trim()}
                 className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
               >
-                {loading ? 'Creating...' : 'Create Project'}
+                {loading ? tCommon('creating') : t('createProject')}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Projects Grid */}
         {projects.length > 0 ? (
           <div>
-            <h2 className="text-2xl font-bold text-slate-50 mb-4">Your Projects</h2>
+            <h2 className="text-2xl font-bold text-slate-50 mb-4">{t('yourProjects')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {projects.map((project) => (
                 <div
@@ -134,7 +129,7 @@ export default function AdminDashboard() {
                       onClick={() => router.push(`/admin/projects/${project.id}`)}
                       className="mt-4 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition active:scale-95"
                     >
-                      Manage Project →
+                      {t('manageProject')}
                     </button>
                   </div>
                 </div>
@@ -144,7 +139,7 @@ export default function AdminDashboard() {
         ) : (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">📦</div>
-            <p className="text-slate-400">No projects yet. Create one to get started!</p>
+            <p className="text-slate-400">{t('noProjects')}</p>
           </div>
         )}
       </div>
