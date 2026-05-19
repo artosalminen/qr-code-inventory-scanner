@@ -7,6 +7,8 @@ import QRScanner from '@/components/QRScanner';
 import { BoxState, Project, ScanAction } from '@/types';
 import { useTranslations } from 'next-intl';
 import { usePersistedProject } from '@/lib/use-persisted-project';
+import { enqueue } from '@/lib/scan-queue';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface ScanHistoryEntry {
   label: string;
@@ -54,6 +56,8 @@ export default function ScannerPage() {
   const [addBoxLabel, setAddBoxLabel] = useState('');
   const [addBoxError, setAddBoxError] = useState('');
   const [isAddingBox, setIsAddingBox] = useState(false);
+  const isOnline = useOnlineStatus();
+  const [queuedOfflineCount, setQueuedOfflineCount] = useState(0);
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const [pendingScanQr, setPendingScanQr] = useState<string | null>(null);
   const [pendingImages, setPendingImages] = useState<(File | null)[]>([null, null, null]);
@@ -73,6 +77,10 @@ export default function ScannerPage() {
   useEffect(() => {
     if (selectedProjectId) fetchProjectRole(selectedProjectId);
   }, [selectedProjectId, session]);
+
+  useEffect(() => {
+    if (isOnline) setQueuedOfflineCount(0);
+  }, [isOnline]);
 
   useEffect(() => {
     setPendingScanQr(null);
@@ -122,6 +130,31 @@ export default function ScannerPage() {
 
   async function handleConfirmScan() {
     if (!pendingScanQr || !selectedProjectId || isProcessing) return;
+
+    if (!navigator.onLine) {
+      await enqueue({
+        id: crypto.randomUUID(),
+        qrCode: pendingScanQr,
+        projectId: selectedProjectId,
+        action: scanMode,
+        condition,
+        notes,
+        timestamp: Date.now(),
+      });
+      setQueuedOfflineCount((prev) => prev + 1);
+      if (pendingImages.some((f) => f !== null)) {
+        setUploadWarning(t('photosCantQueueOffline'));
+      }
+      setLastMessage(t('scanQueued'));
+      setLastMessageType('success');
+      setPendingScanQr(null);
+      setNotes('');
+      setCondition('ok');
+      resetImages();
+      setTimeout(() => setScannerOpen(true), 1500);
+      return;
+    }
+
     setIsProcessing(true);
     try {
       const { data } = await axios.post('/api/boxes/scan', {
@@ -341,6 +374,16 @@ export default function ScannerPage() {
   return (
     <Layout>
       <div className="space-y-6">
+        {!isOnline && (
+          <div className="bg-amber-900 border border-amber-600 text-amber-200 rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2">
+            <span>⚠️</span>
+            <span>
+              {queuedOfflineCount > 0
+                ? t('offlineBannerWithCount', { count: queuedOfflineCount })
+                : t('offlineBanner')}
+            </span>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-50">{t('title')}</h1>

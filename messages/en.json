@@ -92,7 +92,11 @@
     "photosOptional": "Photos (optional)",
     "photoUploadFailed": "Scan saved. Photo upload failed.",
     "takePhoto": "Take photo",
-    "chooseFromLibrary": "Choose from library"
+    "chooseFromLibrary": "Choose from library",
+    "scanQueued": "Scan queued — will sync when back online",
+    "offlineBanner": "Offline — scans are being queued",
+    "offlineBannerWithCount": "Offline — {count} scan(s) queued",
+    "photosCantQueueOffline": "Photos cannot be saved while offline"
   },
   "admin": {
     "title": "Admin Dashboard",
