@@ -19,6 +19,12 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
     setLocaleState(getStoredLocale());
   }, []);
 
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  }, []);
+
   const setLocale = (l: Locale) => {
     setStoredLocale(l);
     setLocaleState(l);
