@@ -158,12 +158,12 @@ export default function Dashboard({ projectId }: DashboardProps) {
       ? boxes
       : boxes.filter((b) => activeFilters.has(b.currentState as BoxState));
 
-  const stateBadges: { state: BoxState; label: string; count: number; borderColor: string; textColor: string }[] = [
-    { state: 'expected',           label: tStates('expected'), count: stats.expected,         borderColor: 'border-purple-500', textColor: 'text-purple-400' },
-    { state: 'received',           label: tStates('received'), count: stats.received,         borderColor: 'border-blue-500',   textColor: 'text-blue-400'   },
-    { state: 'in_use',             label: tStates('in_use'),   count: stats.inUse,            borderColor: 'border-yellow-500', textColor: 'text-yellow-400' },
-    { state: 'ready_for_checkout', label: tStates('ready'),    count: stats.readyForCheckout, borderColor: 'border-orange-500', textColor: 'text-orange-400' },
-    { state: 'departed',           label: tStates('departed'), count: stats.departed,         borderColor: 'border-green-500',  textColor: 'text-green-400'  },
+  const stateBadges: { state: BoxState; label: string; count: number; activeClass: string; inactiveClass: string; textColor: string }[] = [
+    { state: 'expected',           label: tStates('expected'), count: stats.expected,         activeClass: 'border-purple-500 ring-1 ring-purple-500',   inactiveClass: 'border-purple-500/30 hover:border-purple-500/70', textColor: 'text-purple-400' },
+    { state: 'received',           label: tStates('received'), count: stats.received,         activeClass: 'border-blue-500 ring-1 ring-blue-500',       inactiveClass: 'border-blue-500/30 hover:border-blue-500/70',   textColor: 'text-blue-400'   },
+    { state: 'in_use',             label: tStates('in_use'),   count: stats.inUse,            activeClass: 'border-yellow-500 ring-1 ring-yellow-500',   inactiveClass: 'border-yellow-500/30 hover:border-yellow-500/70', textColor: 'text-yellow-400' },
+    { state: 'ready_for_checkout', label: tStates('ready'),    count: stats.readyForCheckout, activeClass: 'border-orange-500 ring-1 ring-orange-500',   inactiveClass: 'border-orange-500/30 hover:border-orange-500/70', textColor: 'text-orange-400' },
+    { state: 'departed',           label: tStates('departed'), count: stats.departed,         activeClass: 'border-green-500 ring-1 ring-green-500',     inactiveClass: 'border-green-500/30 hover:border-green-500/70', textColor: 'text-green-400'  },
   ];
 
   return (
@@ -178,16 +178,17 @@ export default function Dashboard({ projectId }: DashboardProps) {
           <div className="text-2xl sm:text-4xl font-bold text-slate-50 mt-2">{stats.total}</div>
         </div>
 
-        {stateBadges.map(({ state, label, count, borderColor, textColor }) => {
+        {stateBadges.map(({ state, label, count, activeClass, inactiveClass, textColor }) => {
           const isActive = activeFilters.has(state);
           return (
             <button
               key={state}
               type="button"
+              aria-pressed={isActive}
               onClick={() => toggleFilter(state)}
-              className={`relative bg-slate-800 p-4 sm:p-6 rounded-lg border text-left transition
-                ${isActive ? `${borderColor} ring-1 ring-current` : `${borderColor}/30 hover:${borderColor}/70`}
-              `}
+              className={`relative bg-slate-800 p-4 sm:p-6 rounded-lg border text-left transition cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-slate-800 ${
+                isActive ? activeClass : inactiveClass
+              }`}
             >
               {/* Funnel icon — top-right corner */}
               <svg
