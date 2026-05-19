@@ -1,6 +1,6 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import Layout from '@/components/Layout';
 import QRScanner from '@/components/QRScanner';
@@ -9,6 +9,15 @@ import { useTranslations } from 'next-intl';
 import { usePersistedProject } from '@/lib/use-persisted-project';
 import { enqueue } from '@/lib/scan-queue';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+
+type BoxPreview = { id: string; label: string; qrCode: string; currentState: string };
+
+type PreviewState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'valid'; box: BoxPreview }
+  | { status: 'invalid'; box: BoxPreview | null; reason: string }
+  | { status: 'offline' };
 
 interface ScanHistoryEntry {
   label: string;
@@ -65,6 +74,7 @@ export default function ScannerPage() {
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [uploadWarning, setUploadWarning] = useState('');
   const [actionSheetSlot, setActionSheetSlot] = useState<number | null>(null);
+  const [preview, setPreview] = useState<PreviewState>({ status: 'idle' });
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +94,7 @@ export default function ScannerPage() {
 
   useEffect(() => {
     setPendingScanQr(null);
+    setPreview({ status: 'idle' });
     setAddBoxFormOpen(false);
     setAddBoxQr('');
     setAddBoxLabel('');
@@ -121,12 +132,44 @@ export default function ScannerPage() {
     }
   }
 
-  async function handleScan(qrCode: string) {
-    if (!selectedProjectId || isProcessing) return;
-    setPendingScanQr(qrCode);
+  const handleScan = useCallback((decodedText: string) => {
+    if (!isOnline) {
+      setPreview({ status: 'offline' });
+    } else {
+      setPreview({ status: 'loading' });
+    }
+    setPendingScanQr(decodedText);
     setScannerOpen(false);
     setLastMessage('');
-  }
+  }, [isOnline]);
+
+  useEffect(() => {
+    if (!pendingScanQr || preview.status === 'offline') return;
+
+    const fetchPreview = async () => {
+      try {
+        const searchParams = new URLSearchParams({
+          qrCode: pendingScanQr,
+          projectId: selectedProjectId || '',
+          action: scanMode,
+        });
+
+        const response = await fetch(`/api/boxes/preview?${searchParams}`);
+        const data = await response.json();
+
+        if (data.valid) {
+          setPreview({ status: 'valid', box: data.box });
+        } else {
+          setPreview({ status: 'invalid', box: data.box || null, reason: data.reason });
+        }
+      } catch (error) {
+        console.error('preview fetch error:', error);
+        setPreview({ status: 'invalid', box: null, reason: 'Failed to validate box' });
+      }
+    };
+
+    fetchPreview();
+  }, [pendingScanQr, scanMode, selectedProjectId, preview.status]);
 
   async function handleConfirmScan() {
     if (!pendingScanQr || !selectedProjectId || isProcessing) return;
@@ -227,6 +270,7 @@ export default function ScannerPage() {
 
   function handleRescan() {
     setPendingScanQr(null);
+    setPreview({ status: 'idle' });
     setCondition('ok');
     setNotes('');
     setLastMessage('');
