@@ -6,6 +6,7 @@ import Layout from '@/components/Layout';
 import QRScanner from '@/components/QRScanner';
 import { BoxState, Project, ScanAction } from '@/types';
 import { useTranslations } from 'next-intl';
+import { usePersistedProject } from '@/lib/use-persisted-project';
 
 interface ScanHistoryEntry {
   label: string;
@@ -39,7 +40,7 @@ export default function ScannerPage() {
   const tStates = useTranslations('states');
 
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = usePersistedProject(projects);
   const [scanMode, setScanMode] = useState<ScanAction>('check_in');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [lastMessage, setLastMessage] = useState('');
@@ -107,7 +108,6 @@ export default function ScannerPage() {
     try {
       const { data } = await axios.get('/api/projects');
       setProjects(data);
-      if (data.length > 0) setSelectedProjectId(data[0].id);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     }
