@@ -248,6 +248,7 @@ export default function ScannerPage() {
         ].slice(0, 5),
       );
       setPendingScanQr(null);
+      setPreview({ status: 'idle' });
       setNotes('');
       setCondition('ok');
       resetImages();
@@ -471,120 +472,173 @@ export default function ScannerPage() {
                 <div className="font-mono text-slate-50 text-sm break-all">{pendingScanQr}</div>
               </div>
 
-              {['check_in', 'check_out'].includes(scanMode) && (
-                <div>
-                  <label className="block text-slate-200 font-semibold mb-3">{t('itemCondition')}</label>
+              {/* Status Card */}
+              <div className="mb-4 p-4 rounded-lg border">
+                {preview.status === 'loading' && (
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-gray-800 mb-2"></div>
+                    <p className="text-sm text-gray-600">Checking box status…</p>
+                  </div>
+                )}
+
+                {preview.status === 'valid' && (
+                  <div className="border-l-4 border-green-500 bg-green-50 p-3">
+                    <div className="font-semibold text-lg">{preview.box.label}</div>
+                    <div className="text-sm text-gray-700 mt-1">
+                      Current state: <span className="inline-block px-2 py-1 bg-gray-200 rounded text-xs font-mono mt-1">{preview.box.currentState}</span>
+                    </div>
+                    <div className="text-sm text-green-700 font-medium mt-2">✓ Ready to {scanMode}</div>
+                  </div>
+                )}
+
+                {preview.status === 'invalid' && (
+                  <div className="border-l-4 border-red-500 bg-red-50 p-3">
+                    {preview.box && (
+                      <>
+                        <div className="font-semibold text-lg">{preview.box.label}</div>
+                        <div className="text-sm text-gray-700 mt-1">
+                          Current state: <span className="inline-block px-2 py-1 bg-gray-200 rounded text-xs font-mono mt-1">{preview.box.currentState}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="text-sm text-red-700 font-medium mt-2">✗ {preview.reason}</div>
+                  </div>
+                )}
+
+                {preview.status === 'offline' && (
+                  <div className="text-xs text-gray-500 italic">Offline — validation skipped</div>
+                )}
+              </div>
+
+              {/* Confirmation Form — only show if valid or offline */}
+              {(preview.status === 'valid' || preview.status === 'offline') && (
+                <div className="space-y-3">
+                  {['check_in', 'check_out'].includes(scanMode) && (
+                    <div>
+                      <label className="block text-slate-200 font-semibold mb-3">{t('itemCondition')}</label>
+                      <div className="flex gap-3">
+                        {[
+                          { value: 'ok', label: tCommon('conditionOk'), icon: '👍' },
+                          { value: 'damaged', label: tCommon('conditionDamaged'), icon: '🔧' },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setCondition(opt.value)}
+                            className={`flex-1 px-4 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
+                              condition === opt.value
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            <span>{opt.icon}</span>
+                            <span>{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-slate-200 font-semibold mb-3">{t('notesOptional')}</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      rows={3}
+                      placeholder={t('notesPlaceholder')}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-200 font-semibold mb-3">
+                      {t('photosOptional')}
+                    </label>
+                    <div className="flex gap-3">
+                      {[0, 1, 2].map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() =>
+                            imagePreviewUrls[slot]
+                              ? handleRemoveImage(slot)
+                              : handleSlotClick(slot)
+                          }
+                          className="relative w-20 h-20 rounded-lg border-2 border-dashed border-slate-500 flex items-center justify-center overflow-hidden bg-slate-700 hover:border-slate-400 transition"
+                        >
+                          {imagePreviewUrls[slot] ? (
+                            <>
+                              <img
+                                src={imagePreviewUrls[slot]!}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute top-0 right-0 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-bl">
+                                ✕
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-2xl text-slate-400">+</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {uploadWarning && (
+                      <p className="text-xs text-amber-400 mt-2">{uploadWarning}</p>
+                    )}
+                  </div>
+
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+
+                  {addBoxFormOpen && addBoxForm}
+
+                  {lastMessage && lastMessageType === 'error' && (
+                    <div className="p-4 rounded-lg font-semibold flex items-center gap-3 bg-red-900 border border-red-600 text-red-200">
+                      <span className="text-2xl">✗</span>
+                      <span>{lastMessage}</span>
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
-                    {[
-                      { value: 'ok', label: tCommon('conditionOk'), icon: '👍' },
-                      { value: 'damaged', label: tCommon('conditionDamaged'), icon: '🔧' },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setCondition(opt.value)}
-                        className={`flex-1 px-4 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                          condition === opt.value
-                            ? 'bg-green-600 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
-                      >
-                        <span>{opt.icon}</span>
-                        <span>{opt.label}</span>
-                      </button>
-                    ))}
+                    <button
+                      onClick={handleRescan}
+                      className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition"
+                    >
+                      {t('rescan')}
+                    </button>
+                    <button
+                      onClick={handleConfirmScan}
+                      disabled={isProcessing || addBoxFormOpen}
+                      className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95"
+                    >
+                      {isProcessing ? tCommon('processing') : tCommon('confirm')}
+                    </button>
                   </div>
                 </div>
               )}
 
-              <div>
-                <label className="block text-slate-200 font-semibold mb-3">{t('notesOptional')}</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  rows={3}
-                  placeholder={t('notesPlaceholder')}
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-200 font-semibold mb-3">
-                  {t('photosOptional')}
-                </label>
-                <div className="flex gap-3">
-                  {[0, 1, 2].map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() =>
-                        imagePreviewUrls[slot]
-                          ? handleRemoveImage(slot)
-                          : handleSlotClick(slot)
-                      }
-                      className="relative w-20 h-20 rounded-lg border-2 border-dashed border-slate-500 flex items-center justify-center overflow-hidden bg-slate-700 hover:border-slate-400 transition"
-                    >
-                      {imagePreviewUrls[slot] ? (
-                        <>
-                          <img
-                            src={imagePreviewUrls[slot]!}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                          <span className="absolute top-0 right-0 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-bl">
-                            ✕
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-2xl text-slate-400">+</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {uploadWarning && (
-                  <p className="text-xs text-amber-400 mt-2">{uploadWarning}</p>
-                )}
-              </div>
-
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <input
-                ref={galleryInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-
-              {addBoxFormOpen && addBoxForm}
-
-              {lastMessage && lastMessageType === 'error' && (
-                <div className="p-4 rounded-lg font-semibold flex items-center gap-3 bg-red-900 border border-red-600 text-red-200">
-                  <span className="text-2xl">✗</span>
-                  <span>{lastMessage}</span>
-                </div>
-              )}
-
-              <div className="flex gap-3">
+              {/* Rescan Button — show if invalid */}
+              {preview.status === 'invalid' && (
                 <button
                   onClick={handleRescan}
-                  className="flex-1 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-semibold transition"
+                  className="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded font-medium hover:bg-gray-300"
                 >
-                  {t('rescan')}
+                  Rescan
                 </button>
-                <button
-                  onClick={handleConfirmScan}
-                  disabled={isProcessing || addBoxFormOpen}
-                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition active:scale-95"
-                >
-                  {isProcessing ? tCommon('processing') : tCommon('confirm')}
-                </button>
-              </div>
+              )}
             </div>
           </div>
         ) : (
