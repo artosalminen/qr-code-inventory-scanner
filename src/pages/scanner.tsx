@@ -476,37 +476,33 @@ export default function ScannerPage() {
               <div className="mb-4 p-4 rounded-lg border">
                 {preview.status === 'loading' && (
                   <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-gray-800 mb-2"></div>
-                    <p className="text-sm text-gray-600">Checking box status…</p>
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-slate-600 border-t-slate-300 mb-2"></div>
+                    <p className="text-sm text-slate-300">Checking box status…</p>
                   </div>
                 )}
 
                 {preview.status === 'valid' && (
-                  <div className="border-l-4 border-green-500 bg-green-50 p-3">
-                    <div className="font-semibold text-lg">{preview.box.label}</div>
-                    <div className="text-sm text-gray-700 mt-1">
-                      Current state: <span className="inline-block px-2 py-1 bg-gray-200 rounded text-xs font-mono mt-1">{preview.box.currentState}</span>
+                  <div className="border-l-4 border-green-500 bg-slate-700 p-3 rounded">
+                    <div className="font-semibold text-lg text-green-400">{preview.box.label}</div>
+                    <div className="text-sm text-slate-200 mt-1">
+                      Current state: <span className="inline-block px-2 py-1 bg-slate-600 rounded text-xs font-mono text-slate-100 mt-1">{preview.box.currentState}</span>
                     </div>
-                    <div className="text-sm text-green-700 font-medium mt-2">✓ Ready to {scanMode}</div>
+                    <div className="text-sm text-green-400 font-medium mt-2">✓ Ready to {scanMode}</div>
                   </div>
                 )}
 
                 {preview.status === 'invalid' && (
-                  <div className="border-l-4 border-red-500 bg-red-50 p-3">
+                  <div className="border-l-4 border-red-500 bg-slate-700 p-3 rounded">
                     {preview.box && (
                       <>
-                        <div className="font-semibold text-lg">{preview.box.label}</div>
-                        <div className="text-sm text-gray-700 mt-1">
-                          Current state: <span className="inline-block px-2 py-1 bg-gray-200 rounded text-xs font-mono mt-1">{preview.box.currentState}</span>
+                        <div className="font-semibold text-lg text-red-400">{preview.box.label}</div>
+                        <div className="text-sm text-slate-200 mt-1">
+                          Current state: <span className="inline-block px-2 py-1 bg-slate-600 rounded text-xs font-mono text-slate-100 mt-1">{preview.box.currentState}</span>
                         </div>
                       </>
                     )}
-                    <div className="text-sm text-red-700 font-medium mt-2">✗ {preview.reason}</div>
+                    <div className="text-sm text-red-400 font-medium mt-2">✗ {preview.reason}</div>
                   </div>
-                )}
-
-                {preview.status === 'offline' && (
-                  <div className="text-xs text-gray-500 italic">Offline — validation skipped</div>
                 )}
               </div>
 
