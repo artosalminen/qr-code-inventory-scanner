@@ -630,7 +630,7 @@ export default function ScannerPage() {
               {preview.status === 'invalid' && (
                 <button
                   onClick={handleRescan}
-                  className="w-full py-2 px-4 bg-gray-200 text-gray-800 rounded font-medium hover:bg-gray-300"
+                  className="w-full py-2 px-4 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded font-medium"
                 >
                   Rescan
                 </button>
