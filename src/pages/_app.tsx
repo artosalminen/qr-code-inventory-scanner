@@ -1,6 +1,7 @@
 import '@/styles/globals.css';
 import type { AppProps } from 'next/app';
 import { SessionProvider } from 'next-auth/react';
+import Head from 'next/head';
 import { Inter } from 'next/font/google';
 import { useEffect, useState } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
@@ -27,9 +28,19 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
     <LocaleContext.Provider value={{ locale, setLocale }}>
       <NextIntlClientProvider locale={locale} messages={messages[locale]}>
         <SessionProvider session={session}>
-          <div className={inter.className}>
-            <Component {...pageProps} />
-          </div>
+          <>
+            <Head>
+              <link rel="manifest" href="/manifest.json" />
+              <meta name="theme-color" content="#2563eb" />
+              <meta name="apple-mobile-web-app-capable" content="yes" />
+              <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+              <meta name="apple-mobile-web-app-title" content="Inventory" />
+              <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+            </Head>
+            <div className={inter.className}>
+              <Component {...pageProps} />
+            </div>
+          </>
         </SessionProvider>
       </NextIntlClientProvider>
     </LocaleContext.Provider>
