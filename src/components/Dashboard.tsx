@@ -32,7 +32,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [boxes, setBoxes] = useState<BoxWithState[]>([]);
   const [selectedBox, setSelectedBox] = useState<BoxWithState | null>(null);
   const [history, setHistory] = useState<BoxStateHistory[]>([]);
-  const [filterState, setFilterState] = useState<BoxState | 'all'>('all');
+  const [activeFilters, setActiveFilters] = useState<Set<BoxState>>(new Set());
   const [userRole, setUserRole] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editState, setEditState] = useState<BoxState>('received');
@@ -41,6 +41,18 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  function toggleFilter(state: BoxState) {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      next.has(state) ? next.delete(state) : next.add(state);
+      return next;
+    });
+  }
+
+  function clearFilters() {
+    setActiveFilters(new Set());
+  }
 
   useEffect(() => {
     fetchBoxes();
@@ -142,7 +154,9 @@ export default function Dashboard({ projectId }: DashboardProps) {
   };
 
   const filteredBoxes =
-    filterState === 'all' ? boxes : boxes.filter((b) => b.currentState === filterState);
+    activeFilters.size === 0
+      ? boxes
+      : boxes.filter((b) => activeFilters.has(b.currentState as BoxState));
 
   return (
     <>
@@ -174,23 +188,6 @@ export default function Dashboard({ projectId }: DashboardProps) {
           <div className="text-slate-400 text-xs sm:text-sm">{tStates('departed')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-green-400 mt-2">{stats.departed}</div>
         </div>
-      </div>
-
-      {/* Filter Buttons */}
-      <div className="mb-6 flex gap-2 flex-wrap">
-        {(['all', 'expected', 'received', 'in_use', 'ready_for_checkout', 'departed'] as const).map((state) => (
-          <button
-            key={state}
-            onClick={() => setFilterState(state)}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition text-sm sm:text-base ${
-              filterState === state
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
-            }`}
-          >
-            {state === 'all' ? tStates('all') : tStates(state)}
-          </button>
-        ))}
       </div>
 
       {/* Boxes Grid */}
