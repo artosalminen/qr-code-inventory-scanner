@@ -83,7 +83,7 @@ The flush also runs on app mount to catch scans queued in a previous session.
 
 Linked via `<link rel="manifest" href="/manifest.json">` and `<meta name="theme-color" content="#2563eb">` in `_app.tsx` using `next/head`.
 
-Icons are generated at build time from existing SVG assets using `sharp` (already in `package.json`). A one-off script (`scripts/generate-icons.ts`) rasterizes to 192×192 and 512×512 PNG and the outputs are committed to the repo.
+Icons are generated once using `sharp` (already in `package.json`) via a one-off script (`scripts/generate-icons.ts`). The script creates a simple solid blue (#2563eb) square PNG at 192×192 and 512×512. Outputs are committed to the repo — no runtime generation. (The existing SVGs in `public/` are Next.js/Vercel placeholders and are not used.)
 
 ## Service Worker
 
