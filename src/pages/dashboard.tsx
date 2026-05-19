@@ -1,6 +1,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import { usePersistedProject } from '@/lib/use-persisted-project';
 import axios from 'axios';
 import Dashboard from '@/components/Dashboard';
 import Layout from '@/components/Layout';
@@ -11,7 +12,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = usePersistedProject(projects);
   const t = useTranslations('dashboard');
   const tCommon = useTranslations('common');
 
@@ -29,9 +30,6 @@ export default function DashboardPage() {
     try {
       const { data } = await axios.get('/api/projects');
       setProjects(data);
-      if (data.length > 0) {
-        setSelectedProjectId(data[0].id);
-      }
     } catch (error) {
       console.error('Failed to fetch projects:', error);
     }
