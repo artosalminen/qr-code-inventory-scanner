@@ -1,8 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import prisma from '@/lib/db';
-import { canTransition } from '@/lib/state-machine';
-import { BoxState, ScanAction } from '@/types';
+import {
+  INITIAL_BOX_STATE,
+  isValidStateForAction,
+  isRoleAllowedForAction,
+} from '@/lib/state-machine';
+import { BoxState, ScanAction, UserRole } from '@/types';
 
 export interface PreviewResponse {
   box: {
@@ -26,6 +30,16 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     return res
       .status(400)
       .json({ box: null, valid: false, reason: 'Missing required parameters: qrCode, projectId, action' });
+  }
+
+  // Validate action is a known ScanAction
+  const validActions = ['check_in', 'activate', 'return', 'check_out'] as const;
+  if (!validActions.includes(action as any)) {
+    return res.status(400).json({
+      box: null,
+      valid: false,
+      reason: `Invalid action. Must be one of: ${validActions.join(', ')}`,
+    });
   }
 
   // Validate session and project role — only require read-level access
@@ -56,18 +70,11 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
       take: 1,
     });
 
-    const currentState = (latestHistory?.state as BoxState) || ('expected' as BoxState);
+    // If no history exists, box is in its initial state (expected per inventory spec)
+    const currentState = (latestHistory?.state as BoxState) || INITIAL_BOX_STATE;
 
-    // Get user's role in project
-    const projectUser = await prisma.projectUser.findUnique({
-      where: {
-        idx_project_user_unique: {
-          projectId: projectId as string,
-          userId: req.userId!,
-        },
-      },
-    });
-
+    // Get user's role in project (should be attached by withProjectRole middleware)
+    const projectUser = (req as any).projectUser;
     if (!projectUser) {
       return res.status(403).json({
         box: null,
@@ -76,15 +83,23 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
       });
     }
 
-    // Validate transition
+    // Validate transition using state machine functions
     const actionStr = action as string;
-    const transitionResult = canTransition(currentState, actionStr, projectUser.role);
+    const isStateValid = isValidStateForAction(currentState, actionStr as ScanAction);
+    const isRoleValid = isRoleAllowedForAction(
+      currentState,
+      actionStr as ScanAction,
+      projectUser.role as UserRole,
+    );
 
-    if (!transitionResult.valid) {
+    if (!isStateValid || !isRoleValid) {
+      const reason = !isStateValid
+        ? `Box is in state ${currentState} — cannot ${actionStr}`
+        : 'Your role cannot perform this action';
       return res.status(200).json({
         box: { id: box.id, label: box.label, qrCode: box.qrCode, currentState },
         valid: false,
-        reason: transitionResult.reason || 'Invalid state transition',
+        reason,
       });
     }
 
@@ -107,7 +122,12 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
       valid: true,
     });
   } catch (error: any) {
-    console.error('preview endpoint error:', error);
+    // Only log unexpected errors (not validation failures)
+    if (error instanceof Error) {
+      console.error('Unexpected error in preview endpoint:', error.message);
+    } else {
+      console.error('Unexpected error in preview endpoint:', error);
+    }
     return res.status(500).json({ box: null, valid: false, reason: 'Server error' });
   }
 }
