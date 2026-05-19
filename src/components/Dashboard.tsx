@@ -158,36 +158,56 @@ export default function Dashboard({ projectId }: DashboardProps) {
       ? boxes
       : boxes.filter((b) => activeFilters.has(b.currentState as BoxState));
 
+  const stateBadges: { state: BoxState; label: string; count: number; borderColor: string; textColor: string }[] = [
+    { state: 'expected',           label: tStates('expected'), count: stats.expected,         borderColor: 'border-purple-500', textColor: 'text-purple-400' },
+    { state: 'received',           label: tStates('received'), count: stats.received,         borderColor: 'border-blue-500',   textColor: 'text-blue-400'   },
+    { state: 'in_use',             label: tStates('in_use'),   count: stats.inUse,            borderColor: 'border-yellow-500', textColor: 'text-yellow-400' },
+    { state: 'ready_for_checkout', label: tStates('ready'),    count: stats.readyForCheckout, borderColor: 'border-orange-500', textColor: 'text-orange-400' },
+    { state: 'departed',           label: tStates('departed'), count: stats.departed,         borderColor: 'border-green-500',  textColor: 'text-green-400'  },
+  ];
+
   return (
     <>
       <RealtimeSync projectId={projectId} onBoxStateChanged={handleBoxStateChanged} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+        {/* Total — informational only, not filterable */}
         <div className="bg-slate-800 border border-slate-700 p-4 sm:p-6 rounded-lg">
           <div className="text-slate-400 text-xs sm:text-sm">{t('total')}</div>
           <div className="text-2xl sm:text-4xl font-bold text-slate-50 mt-2">{stats.total}</div>
         </div>
-        <div className="bg-slate-800 border border-purple-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">{tStates('expected')}</div>
-          <div className="text-2xl sm:text-4xl font-bold text-purple-400 mt-2">{stats.expected}</div>
-        </div>
-        <div className="bg-slate-800 border border-blue-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">{tStates('received')}</div>
-          <div className="text-2xl sm:text-4xl font-bold text-blue-400 mt-2">{stats.received}</div>
-        </div>
-        <div className="bg-slate-800 border border-yellow-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">{tStates('in_use')}</div>
-          <div className="text-2xl sm:text-4xl font-bold text-yellow-400 mt-2">{stats.inUse}</div>
-        </div>
-        <div className="bg-slate-800 border border-orange-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">{tStates('ready')}</div>
-          <div className="text-2xl sm:text-4xl font-bold text-orange-400 mt-2">{stats.readyForCheckout}</div>
-        </div>
-        <div className="bg-slate-800 border border-green-500 p-4 sm:p-6 rounded-lg">
-          <div className="text-slate-400 text-xs sm:text-sm">{tStates('departed')}</div>
-          <div className="text-2xl sm:text-4xl font-bold text-green-400 mt-2">{stats.departed}</div>
-        </div>
+
+        {stateBadges.map(({ state, label, count, borderColor, textColor }) => {
+          const isActive = activeFilters.has(state);
+          return (
+            <button
+              key={state}
+              type="button"
+              onClick={() => toggleFilter(state)}
+              className={`relative bg-slate-800 p-4 sm:p-6 rounded-lg border text-left transition
+                ${isActive ? `${borderColor} ring-1 ring-current` : `${borderColor}/30 hover:${borderColor}/70`}
+              `}
+            >
+              {/* Funnel icon — top-right corner */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className={`absolute top-2 right-2 w-3 h-3 transition ${
+                  isActive ? 'text-slate-200 opacity-100' : 'text-slate-500 opacity-40'
+                }`}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M5.25 9h9M7.5 13.5h4.5" />
+              </svg>
+
+              <div className="text-slate-400 text-xs sm:text-sm">{label}</div>
+              <div className={`text-2xl sm:text-4xl font-bold mt-2 ${textColor}`}>{count}</div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Boxes Grid */}
