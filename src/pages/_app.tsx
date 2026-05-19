@@ -6,6 +6,8 @@ import { Inter } from 'next/font/google';
 import { useEffect, useState } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 import { LocaleContext, getStoredLocale, setStoredLocale, type Locale } from '@/lib/locale';
+import { useQueueFlush } from '@/hooks/useQueueFlush';
+import type { FlushResult } from '@/hooks/useQueueFlush';
 import enMessages from '../../messages/en.json';
 import fiMessages from '../../messages/fi.json';
 
@@ -14,6 +16,7 @@ const messages = { en: enMessages, fi: fiMessages };
 
 export default function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const [locale, setLocaleState] = useState<'en' | 'fi'>('en');
+  const [syncNotification, setSyncNotification] = useState<string | null>(null);
 
   useEffect(() => {
     setLocaleState(getStoredLocale());
@@ -24,6 +27,15 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
       navigator.serviceWorker.register('/sw.js');
     }
   }, []);
+
+  useQueueFlush((result: FlushResult) => {
+    const msg =
+      result.failed.length > 0
+        ? `${result.succeeded} scan${result.succeeded !== 1 ? 's' : ''} synced. Failed: ${result.failed.map((f) => f.qrCode).join(', ')}`
+        : `${result.succeeded} scan${result.succeeded !== 1 ? 's' : ''} synced`;
+    setSyncNotification(msg);
+    setTimeout(() => setSyncNotification(null), 5000);
+  });
 
   const setLocale = (l: Locale) => {
     setStoredLocale(l);
@@ -46,6 +58,11 @@ export default function App({ Component, pageProps: { session, ...pageProps } }:
             <div className={inter.className}>
               <Component {...pageProps} />
             </div>
+            {syncNotification && (
+              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-slate-100 border border-slate-600 rounded-lg px-4 py-3 shadow-lg text-sm max-w-sm text-center">
+                {syncNotification}
+              </div>
+            )}
           </>
         </SessionProvider>
       </NextIntlClientProvider>
