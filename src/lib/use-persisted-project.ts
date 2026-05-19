@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Project } from '@/types';
 
 const STORAGE_KEY = 'selectedProjectId';
@@ -15,12 +15,12 @@ export function usePersistedProject(projects: Project[]): [string, (id: string) 
     setSelectedId(valid ? stored : projects[0].id);
   }, [projects]);
 
-  function persist(id: string) {
+  const persist = useCallback((id: string) => {
     setSelectedId(id);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, id);
     }
-  }
+  }, []);
 
   return [selectedId, persist];
 }
