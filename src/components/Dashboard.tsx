@@ -197,6 +197,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
                 viewBox="0 0 24 24"
                 strokeWidth={2}
                 stroke="currentColor"
+                aria-hidden="true"
                 className={`absolute top-2 right-2 w-3 h-3 transition ${
                   isActive ? 'text-slate-200 opacity-100' : 'text-slate-500 opacity-40'
                 }`}
@@ -210,6 +211,22 @@ export default function Dashboard({ projectId }: DashboardProps) {
           );
         })}
       </div>
+
+      {/* Clear filters — only visible when filters are active */}
+      {activeFilters.size > 0 && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-500 transition"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true" className="w-3.5 h-3.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+            {tStates('all')}
+          </button>
+        </div>
+      )}
 
       {/* Boxes Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mb-24 sm:mb-0">
