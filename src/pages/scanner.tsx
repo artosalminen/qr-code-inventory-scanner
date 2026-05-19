@@ -59,7 +59,9 @@ export default function ScannerPage() {
   const [imagePreviewUrls, setImagePreviewUrls] = useState<(string | null)[]>([null, null, null]);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [uploadWarning, setUploadWarning] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [actionSheetSlot, setActionSheetSlot] = useState<number | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/');
@@ -244,7 +246,22 @@ export default function ScannerPage() {
 
   function handleSlotClick(slotIndex: number) {
     setActiveSlot(slotIndex);
-    fileInputRef.current?.click();
+    setActionSheetSlot(slotIndex);
+  }
+
+  function handleTakePhoto() {
+    setActionSheetSlot(null);
+    cameraInputRef.current?.click();
+  }
+
+  function handleChooseFromLibrary() {
+    setActionSheetSlot(null);
+    galleryInputRef.current?.click();
+  }
+
+  function handleDismissActionSheet() {
+    setActionSheetSlot(null);
+    setActiveSlot(null);
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -442,9 +459,17 @@ export default function ScannerPage() {
               </div>
 
               <input
-                ref={fileInputRef}
+                ref={cameraInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -563,6 +588,41 @@ export default function ScannerPage() {
           </div>
         )}
       </div>
+      {actionSheetSlot !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          onClick={handleDismissActionSheet}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full max-w-lg bg-slate-800 rounded-t-2xl p-4 space-y-2 pb-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={handleTakePhoto}
+              className="w-full px-4 py-4 bg-slate-700 hover:bg-slate-600 text-slate-50 rounded-lg font-medium transition flex items-center gap-3"
+            >
+              <span className="text-xl">📷</span>
+              <span>{t('takePhoto')}</span>
+            </button>
+            <button
+              onClick={handleChooseFromLibrary}
+              className="w-full px-4 py-4 bg-slate-700 hover:bg-slate-600 text-slate-50 rounded-lg font-medium transition flex items-center gap-3"
+            >
+              <span className="text-xl">🖼️</span>
+              <span>{t('chooseFromLibrary')}</span>
+            </button>
+            <div className="pt-1">
+              <button
+                onClick={handleDismissActionSheet}
+                className="w-full px-4 py-4 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
+              >
+                {tCommon('cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
