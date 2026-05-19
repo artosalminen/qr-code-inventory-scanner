@@ -30,7 +30,7 @@ function usePersistedProject(projects: Project[]): [string, (id: string) => void
 
 ### Re-evaluation on projects load
 
-The hook uses `useEffect` with `projects` as a dependency. When the API call completes and `projects` populates, the hook re-evaluates the stored ID against the real list and selects accordingly. Initial render returns `''` (same as today).
+The hook uses `useEffect` with `projects` as a dependency but only applies the localStorage-based selection **once** — when the list first transitions from empty to populated. After that initial selection, changes to the `projects` list (e.g. a background refetch) do not reset the user's current selection. Initial render returns `''` (same as today).
 
 ## Integration
 
