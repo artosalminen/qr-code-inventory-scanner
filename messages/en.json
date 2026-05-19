@@ -89,7 +89,9 @@
     "addBoxFailed": "Failed to add box",
     "boxAdded": "Box \"{qr}\" added and checked in",
     "photosOptional": "Photos (optional)",
-    "photoUploadFailed": "Scan saved. Photo upload failed."
+    "photoUploadFailed": "Scan saved. Photo upload failed.",
+    "takePhoto": "Take photo",
+    "chooseFromLibrary": "Choose from library"
   },
   "admin": {
     "title": "Admin Dashboard",

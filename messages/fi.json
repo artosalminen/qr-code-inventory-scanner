@@ -89,7 +89,9 @@
     "addBoxFailed": "Laatikon lisääminen epäonnistui",
     "boxAdded": "Laatikko \"{qr}\" lisätty ja kirjattu sisään",
     "photosOptional": "Kuvat (valinnainen)",
-    "photoUploadFailed": "Skannaus tallennettu. Kuvan lataus epäonnistui."
+    "photoUploadFailed": "Skannaus tallennettu. Kuvan lataus epäonnistui.",
+    "takePhoto": "Ota kuva",
+    "chooseFromLibrary": "Valitse kirjastosta"
   },
   "admin": {
     "title": "Ylläpitopaneeli",
