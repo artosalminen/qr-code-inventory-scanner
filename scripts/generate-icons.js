@@ -1,24 +1,24 @@
 const sharp = require('sharp');
 const path = require('path');
-const fs = require('fs');
 
-const ICON_DIR = path.join(__dirname, '..', 'public', 'icons');
-fs.mkdirSync(ICON_DIR, { recursive: true });
+const svgPath = path.join(__dirname, '..', 'public', 'icons', 'icon.svg');
+const outDir = path.join(__dirname, '..', 'public', 'icons');
 
-async function main() {
-  for (const size of [192, 512]) {
-    await sharp({
-      create: {
-        width: size,
-        height: size,
-        channels: 4,
-        background: { r: 37, g: 99, b: 235, alpha: 1 },
-      },
-    })
-      .png()
-      .toFile(path.join(ICON_DIR, `icon-${size}.png`));
-    console.log(`Generated icon-${size}.png`);
-  }
+async function generate() {
+  await sharp(svgPath)
+    .resize(192, 192)
+    .png()
+    .toFile(path.join(outDir, 'icon-192.png'));
+  console.log('Generated icon-192.png');
+
+  await sharp(svgPath)
+    .resize(512, 512)
+    .png()
+    .toFile(path.join(outDir, 'icon-512.png'));
+  console.log('Generated icon-512.png');
 }
 
-main().catch(console.error);
+generate().catch(err => {
+  console.error(err);
+  process.exit(1);
+});
