@@ -70,6 +70,20 @@ export default function Layout({ children }: LayoutProps) {
             </nav>
 
             <div className="flex items-center gap-4">
+              {canScan && (
+                <Link
+                  href="/scanner"
+                  className={`md:hidden px-3 py-2 rounded-lg transition flex items-center gap-1 text-sm ${
+                    isActive('/scanner')
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>📱</span>
+                  <span>{navItems.find(i => i.path === '/scanner')?.label}</span>
+                </Link>
+              )}
+              
               {session?.user?.email && (
                 <div className="hidden sm:block text-sm text-slate-400">
                   {session.user.email}
@@ -95,7 +109,7 @@ export default function Layout({ children }: LayoutProps) {
 
               <button
                 onClick={() => signOut({ redirect: true, callbackUrl: '/' })}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm font-medium"
+                className="hidden md:flex px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm font-medium"
               >
                 {t('signOut')}
               </button>
@@ -126,6 +140,13 @@ export default function Layout({ children }: LayoutProps) {
                   <span>{item.label}</span>
                 </Link>
               ))}
+              <button
+                onClick={() => signOut({ redirect: true, callbackUrl: '/' })}
+                className="w-full mt-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition text-sm font-medium text-left flex items-center gap-2"
+              >
+                <span>🚪</span>
+                <span>{t('signOut')}</span>
+              </button>
             </nav>
           )}
         </div>
