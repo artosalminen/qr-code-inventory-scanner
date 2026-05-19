@@ -8,6 +8,10 @@ export function usePersistedProject(projects: Project[]): [string, (id: string) 
   const initialized = useRef(false);
 
   useEffect(() => {
+    // Run exactly once — when projects first loads from empty.
+    // The initialized guard prevents re-renders with a new array reference
+    // (e.g. a background refetch) from resetting the user's current selection.
+    // Note: cross-tab sync is intentionally not implemented.
     if (projects.length === 0 || initialized.current) return;
     initialized.current = true;
     const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
