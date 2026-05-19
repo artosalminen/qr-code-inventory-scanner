@@ -16,7 +16,8 @@
     "noDescription": "No description",
     "condition": "Condition",
     "conditionOk": "✓ OK",
-    "conditionDamaged": "⚠️ Damaged"
+    "conditionDamaged": "⚠️ Damaged",
+    "clearFilters": "Clear filters"
   },
   "nav": {
     "dashboard": "Dashboard",

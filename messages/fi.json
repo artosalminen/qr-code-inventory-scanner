@@ -16,7 +16,8 @@
     "noDescription": "Ei kuvausta",
     "condition": "Kunto",
     "conditionOk": "✓ Kunnossa",
-    "conditionDamaged": "⚠️ Vaurioitunut"
+    "conditionDamaged": "⚠️ Vaurioitunut",
+    "clearFilters": "Tyhjennä suodattimet"
   },
   "nav": {
     "dashboard": "Kojelauta",
