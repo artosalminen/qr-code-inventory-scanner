@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiResponse } from 'next';
 import { withProjectRole, AuthenticatedRequest } from '@/lib/auth-middleware';
 import prisma from '@/lib/db';
 import {
@@ -7,6 +7,10 @@ import {
   isRoleAllowedForAction,
 } from '@/lib/state-machine';
 import { BoxState, ScanAction, UserRole } from '@/types';
+
+interface PreviewRequest extends AuthenticatedRequest {
+  projectUser?: { userId: string; projectId: string; role: string };
+}
 
 export interface PreviewResponse {
   box: {
@@ -19,7 +23,7 @@ export interface PreviewResponse {
   reason?: string;
 }
 
-export default async function handler(req: AuthenticatedRequest, res: NextApiResponse<PreviewResponse>) {
+export default async function handler(req: PreviewRequest, res: NextApiResponse<PreviewResponse>) {
   if (req.method !== 'GET') {
     return res.status(405).json({ box: null, valid: false, reason: 'Method not allowed' });
   }
@@ -34,7 +38,8 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
 
   // Validate action is a known ScanAction
   const validActions = ['check_in', 'activate', 'return', 'check_out'] as const;
-  if (!validActions.includes(action as any)) {
+  const actionStr = String(action);
+  if (!validActions.includes(actionStr as ScanAction)) {
     return res.status(400).json({
       box: null,
       valid: false,
@@ -73,8 +78,24 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     // If no history exists, box is in its initial state (expected per inventory spec)
     const currentState = (latestHistory?.state as BoxState) || INITIAL_BOX_STATE;
 
-    // Get user's role in project (should be attached by withProjectRole middleware)
-    const projectUser = (req as any).projectUser;
+    // Get user's role in project
+    if (!req.userId) {
+      return res.status(403).json({
+        box: null,
+        valid: false,
+        reason: 'Unauthorized',
+      });
+    }
+
+    const projectUser = await prisma.projectUser.findUnique({
+      where: {
+        idx_project_user_unique: {
+          projectId: projectId as string,
+          userId: req.userId,
+        },
+      },
+    });
+
     if (!projectUser) {
       return res.status(403).json({
         box: null,
@@ -84,7 +105,7 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
     }
 
     // Validate transition using state machine functions
-    const actionStr = action as string;
+    // actionStr was already validated above, so we can safely cast it
     const isStateValid = isValidStateForAction(currentState, actionStr as ScanAction);
     const isRoleValid = isRoleAllowedForAction(
       currentState,
@@ -121,12 +142,12 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
       box: { id: box.id, label: box.label, qrCode: box.qrCode, currentState },
       valid: true,
     });
-  } catch (error: any) {
+  } catch (error) {
     // Only log unexpected errors (not validation failures)
     if (error instanceof Error) {
       console.error('Unexpected error in preview endpoint:', error.message);
     } else {
-      console.error('Unexpected error in preview endpoint:', error);
+      console.error('Unexpected error in preview endpoint:', String(error));
     }
     return res.status(500).json({ box: null, valid: false, reason: 'Server error' });
   }
