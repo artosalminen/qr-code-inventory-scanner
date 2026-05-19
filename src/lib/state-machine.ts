@@ -56,3 +56,35 @@ export function getActionDescription(action: ScanAction): string {
   };
   return descriptions[action] || action;
 }
+
+export function canTransition(
+  fromState: string,
+  action: string,
+  role: string,
+): { valid: boolean; reason?: string } {
+  // Validate role can perform action
+  const roleCanDo: Record<string, string[]> = {
+    check_in: ['admin', 'inventory_management'],
+    activate: ['admin', 'inventory_management', 'installation'],
+    return: ['admin', 'inventory_management', 'installation'],
+    check_out: ['admin', 'inventory_management'],
+  };
+
+  if (!roleCanDo[action]?.includes(role)) {
+    return { valid: false, reason: 'Your role cannot perform this action' };
+  }
+
+  // Validate state machine transition using existing validTransitions
+  const transition = validTransitions.find(
+    (t) => t.from === fromState && t.action === action && t.requiredRoles.includes(role as any),
+  );
+
+  if (!transition) {
+    return {
+      valid: false,
+      reason: `Box is in state ${fromState} — cannot ${action}`,
+    };
+  }
+
+  return { valid: true };
+}
