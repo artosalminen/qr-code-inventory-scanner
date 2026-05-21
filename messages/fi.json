@@ -50,6 +50,7 @@
   "dashboard": {
     "title": "Kojelauta",
     "subtitle": "Seuraa varastoasi reaaliajassa",
+    "textFilterPlaceholder": "Suodata laatikoita QR-koodin, nimiön tai kuvauksen mukaan...",
     "total": "Yhteensä",
     "stateHistory": "Tilahistoria",
     "noHistory": "Ei historiaa saatavilla",
@@ -123,6 +124,7 @@
     "changeState": "Muuta tilaa",
     "reasonForChange": "Muutoksen syy *",
     "confirmChange": "Vahvista muutos",
+    "editBoxDetails": "Muokkaa laatikon tietoja",
     "editDescription": "Muokkaa kuvausta",
     "boxLabelPlaceholder": "Laatikon nimiö...",
     "assignUsers": "👥 Lisää käyttäjiä",
@@ -134,6 +136,7 @@
     "noUsersAssigned": "Ei käyttäjiä lisätty tähän projektiin vielä.",
     "loadingProject": "Ladataan projektia...",
     "assignFailed": "Käyttäjän lisääminen epäonnistui",
+    "qrCodeRequiredForEdit": "QR-koodi on pakollinen",
     "saveLabelFailed": "Nimiön tallentaminen epäonnistui",
     "roleReadOnly": "Vain luku",
     "roleInstallation": "Asennus",

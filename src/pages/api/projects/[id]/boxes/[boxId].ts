@@ -15,16 +15,58 @@ export default async function handler(req: AuthenticatedRequest, res: NextApiRes
   await withProjectRole(req, res, id, ['admin', 'inventory_management']);
   if (!req.userId) return;
 
-  const { description } = req.body;
+  const { qrCode, label, description } = req.body;
+
+  if (qrCode !== undefined && typeof qrCode !== 'string') {
+    return res.status(400).json({ error: 'QR code must be a string' });
+  }
+  if (label !== undefined && typeof label !== 'string') {
+    return res.status(400).json({ error: 'Label must be a string' });
+  }
   if (description !== undefined && typeof description !== 'string') {
     return res.status(400).json({ error: 'Description must be a string' });
   }
 
+  const nextQrCode = qrCode?.trim();
+  if (qrCode !== undefined && !nextQrCode) {
+    return res.status(400).json({ error: 'QR code cannot be empty' });
+  }
+
+  const updateData: { qrCode?: string; label?: string | null; description?: string | null } = {};
+  if (qrCode !== undefined) updateData.qrCode = nextQrCode;
+  if (label !== undefined) updateData.label = label.trim() || null;
+  if (description !== undefined) updateData.description = description.trim() || null;
+
   try {
+    const existing = await prisma.box.findUnique({
+      where: { id: boxId },
+      select: { id: true, projectId: true },
+    });
+
+    if (!existing || existing.projectId !== id) {
+      return res.status(404).json({ error: 'Box not found' });
+    }
+
+    if (updateData.qrCode) {
+      const duplicate = await prisma.box.findFirst({
+        where: {
+          projectId: id,
+          qrCode: updateData.qrCode,
+          id: { not: boxId },
+        },
+        select: { id: true },
+      });
+
+      if (duplicate) {
+        return res.status(409).json({ error: 'QR code already exists in this project' });
+      }
+    }
+
     const box = await prisma.box.update({
       where: { id: boxId },
-      data: { description: description?.trim() || null },
+      data: updateData,
     });
+
     return res.status(200).json(box);
   } catch (error: any) {
     if (error.code === 'P2025') {

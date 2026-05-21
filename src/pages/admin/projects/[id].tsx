@@ -45,10 +45,12 @@ export default function ProjectManagement() {
   const [newState, setNewState] = useState<BoxState>('received');
   const [overrideReason, setOverrideReason] = useState('');
   const [overridingState, setOverridingState] = useState(false);
-  const [editingLabelBoxId, setEditingLabelBoxId] = useState<string | null>(null);
-  const [editingLabelValue, setEditingLabelValue] = useState('');
-  const [savingLabel, setSavingLabel] = useState(false);
-  const [labelError, setLabelError] = useState('');
+  const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
+  const [editingQrCode, setEditingQrCode] = useState('');
+  const [editingLabel, setEditingLabel] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
+  const [savingBox, setSavingBox] = useState(false);
+  const [boxEditError, setBoxEditError] = useState('');
 
   const [editingName, setEditingName] = useState('');
   const [savingName, setSavingName] = useState(false);
@@ -141,8 +143,13 @@ export default function ProjectManagement() {
     if (!boxQrCode.trim() || !id) return;
     setAddingBox(true);
     try {
-      await axios.post(`/api/projects/${id}/boxes`, { qrCode: boxQrCode, description: boxDescription });
+      await axios.post(`/api/projects/${id}/boxes`, {
+        qrCode: boxQrCode,
+        label: boxLabel,
+        description: boxDescription,
+      });
       setBoxQrCode('');
+      setBoxLabel('');
       setBoxDescription('');
       setShowAddBox(false);
       fetchProjectData();
@@ -184,18 +191,29 @@ export default function ProjectManagement() {
     }
   }
 
-  async function saveLabel(boxId: string) {
-    if (!id || savingLabel) return;
-    setSavingLabel(true);
-    setLabelError('');
+  async function saveBoxDetails(boxId: string) {
+    if (!id || savingBox) return;
+    setSavingBox(true);
+    setBoxEditError('');
+
+    if (!editingQrCode.trim()) {
+      setBoxEditError(t('qrCodeRequiredForEdit'));
+      setSavingBox(false);
+      return;
+    }
+
     try {
-      await axios.patch(`/api/projects/${id}/boxes/${boxId}`, { description: editingLabelValue });
-      setEditingLabelBoxId(null);
+      await axios.patch(`/api/projects/${id}/boxes/${boxId}`, {
+        qrCode: editingQrCode,
+        label: editingLabel,
+        description: editingDescription,
+      });
+      setEditingBoxId(null);
       fetchProjectData();
     } catch (error: any) {
-      setLabelError(error.response?.data?.error || t('saveLabelFailed'));
+      setBoxEditError(error.response?.data?.error || t('saveLabelFailed'));
     } finally {
-      setSavingLabel(false);
+      setSavingBox(false);
     }
   }
 
@@ -361,6 +379,13 @@ export default function ProjectManagement() {
                     onChange={(e) => setBoxQrCode(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
+                  <input
+                    type="text"
+                    placeholder={t('boxLabelPlaceholder')}
+                    value={boxLabel}
+                    onChange={(e) => setBoxLabel(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
                   <textarea
                     placeholder={t('descriptionOptional')}
                     value={boxDescription}
@@ -377,7 +402,12 @@ export default function ProjectManagement() {
                       {addingBox ? tCommon('adding') : t('addBoxButton')}
                     </button>
                     <button
-                      onClick={() => setShowAddBox(false)}
+                      onClick={() => {
+                        setShowAddBox(false);
+                        setBoxQrCode('');
+                        setBoxLabel('');
+                        setBoxDescription('');
+                      }}
                       className="flex-1 sm:flex-initial px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg font-medium transition"
                     >
                       {tCommon('cancel')}
@@ -425,6 +455,7 @@ export default function ProjectManagement() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-slate-50 truncate">{box.qrCode}</div>
+                          {box.label && <div className="text-sm text-slate-300 truncate mt-0.5">{box.label}</div>}
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-sm text-slate-400 truncate">
                               {box.description || <span className="italic text-slate-500">{tCommon('noDescription')}</span>}
@@ -432,9 +463,11 @@ export default function ProjectManagement() {
                             {canManageBoxes && (
                               <button
                                 onClick={() => {
-                                  setEditingLabelBoxId(box.id);
-                                  setEditingLabelValue(box.description || '');
-                                  setLabelError('');
+                                  setEditingBoxId(box.id);
+                                  setEditingQrCode(box.qrCode || '');
+                                  setEditingLabel(box.label || '');
+                                  setEditingDescription(box.description || '');
+                                  setBoxEditError('');
                                   setSelectedBoxId(null);
                                 }}
                                 className="text-slate-500 hover:text-slate-300 transition shrink-0"
@@ -452,7 +485,7 @@ export default function ProjectManagement() {
                         </div>
                         {canManageBoxes && (
                           <button
-                            onClick={() => { setSelectedBoxId(box.id); setEditingLabelBoxId(null); }}
+                            onClick={() => { setSelectedBoxId(box.id); setEditingBoxId(null); }}
                             className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition active:scale-95"
                           >
                             {t('changeState')}
@@ -496,29 +529,46 @@ export default function ProjectManagement() {
                         </div>
                       )}
 
-                      {editingLabelBoxId === box.id && (
+                      {editingBoxId === box.id && (
                         <div className="mt-4 pt-4 border-t border-slate-600 space-y-3">
-                          <label className="block text-sm font-medium text-slate-300">{t('editDescription')}</label>
+                          <label className="block text-sm font-medium text-slate-300">{t('editBoxDetails')}</label>
                           <input
                             type="text"
-                            value={editingLabelValue}
-                            onChange={(e) => setEditingLabelValue(e.target.value)}
-                            placeholder={t('boxLabelPlaceholder')}
+                            value={editingQrCode}
+                            onChange={(e) => setEditingQrCode(e.target.value)}
+                            placeholder={t('qrCodeRequired')}
                             className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveLabel(box.id); if (e.key === 'Escape') setEditingLabelBoxId(null); }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveBoxDetails(box.id);
+                              if (e.key === 'Escape') setEditingBoxId(null);
+                            }}
                             autoFocus
                           />
-                          {labelError && <p className="text-sm text-red-400">{labelError}</p>}
+                          <input
+                            type="text"
+                            value={editingLabel}
+                            onChange={(e) => setEditingLabel(e.target.value)}
+                            placeholder={t('boxLabelPlaceholder')}
+                            className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <textarea
+                            value={editingDescription}
+                            onChange={(e) => setEditingDescription(e.target.value)}
+                            placeholder={t('descriptionOptional')}
+                            rows={3}
+                            className="w-full px-4 py-2 bg-slate-600 border border-slate-500 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          />
+                          {boxEditError && <p className="text-sm text-red-400">{boxEditError}</p>}
                           <div className="flex gap-2">
                             <button
-                              onClick={() => saveLabel(box.id)}
-                              disabled={savingLabel}
+                              onClick={() => saveBoxDetails(box.id)}
+                              disabled={savingBox || !editingQrCode.trim()}
                               className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition"
                             >
-                              {savingLabel ? tCommon('saving') : tCommon('save')}
+                              {savingBox ? tCommon('saving') : tCommon('save')}
                             </button>
                             <button
-                              onClick={() => setEditingLabelBoxId(null)}
+                              onClick={() => setEditingBoxId(null)}
                               className="flex-1 sm:flex-initial px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-lg font-medium transition"
                             >
                               {tCommon('cancel')}

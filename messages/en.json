@@ -50,6 +50,7 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Track your box inventory in real-time",
+    "textFilterPlaceholder": "Filter boxes by QR code, label, or description...",
     "total": "Total",
     "stateHistory": "State History",
     "noHistory": "No history available",
@@ -123,6 +124,7 @@
     "changeState": "Change State",
     "reasonForChange": "Reason for change *",
     "confirmChange": "Confirm Change",
+    "editBoxDetails": "Edit Box Details",
     "editDescription": "Edit Description",
     "boxLabelPlaceholder": "Box label...",
     "assignUsers": "👥 Assign Users",
@@ -134,6 +136,7 @@
     "noUsersAssigned": "No users assigned to this project yet.",
     "loadingProject": "Loading project...",
     "assignFailed": "Failed to assign user",
+    "qrCodeRequiredForEdit": "QR code is required",
     "saveLabelFailed": "Failed to save label",
     "roleReadOnly": "Read-only",
     "roleInstallation": "Installation",

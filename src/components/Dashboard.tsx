@@ -33,6 +33,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
   const [selectedBox, setSelectedBox] = useState<BoxWithState | null>(null);
   const [history, setHistory] = useState<BoxStateHistory[]>([]);
   const [activeFilters, setActiveFilters] = useState<Set<BoxState>>(new Set());
+  const [textFilter, setTextFilter] = useState('');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editState, setEditState] = useState<BoxState>('received');
@@ -45,13 +46,18 @@ export default function Dashboard({ projectId }: DashboardProps) {
   function toggleFilter(state: BoxState) {
     setActiveFilters((prev) => {
       const next = new Set(prev);
-      next.has(state) ? next.delete(state) : next.add(state);
+      if (next.has(state)) {
+        next.delete(state);
+      } else {
+        next.add(state);
+      }
       return next;
     });
   }
 
   function clearFilters() {
     setActiveFilters(new Set());
+    setTextFilter('');
   }
 
   useEffect(() => {
@@ -144,19 +150,35 @@ export default function Dashboard({ projectId }: DashboardProps) {
     }
   }
 
+  const normalizedTextFilter = textFilter.trim().toLowerCase();
+
+  const textFilteredBoxes =
+    normalizedTextFilter.length === 0
+      ? boxes
+      : boxes.filter((b) => {
+          const qrCode = b.qrCode?.toLowerCase() || '';
+          const description = b.description?.toLowerCase() || '';
+          const label = b.label?.toLowerCase() || '';
+          return (
+            qrCode.includes(normalizedTextFilter) ||
+            description.includes(normalizedTextFilter) ||
+            label.includes(normalizedTextFilter)
+          );
+        });
+
   const stats = {
-    total: boxes.length,
-    expected: boxes.filter((b) => b.currentState === 'expected').length,
-    received: boxes.filter((b) => b.currentState === 'received').length,
-    inUse: boxes.filter((b) => b.currentState === 'in_use').length,
-    readyForCheckout: boxes.filter((b) => b.currentState === 'ready_for_checkout').length,
-    departed: boxes.filter((b) => b.currentState === 'departed').length,
+    total: textFilteredBoxes.length,
+    expected: textFilteredBoxes.filter((b) => b.currentState === 'expected').length,
+    received: textFilteredBoxes.filter((b) => b.currentState === 'received').length,
+    inUse: textFilteredBoxes.filter((b) => b.currentState === 'in_use').length,
+    readyForCheckout: textFilteredBoxes.filter((b) => b.currentState === 'ready_for_checkout').length,
+    departed: textFilteredBoxes.filter((b) => b.currentState === 'departed').length,
   };
 
   const filteredBoxes =
     activeFilters.size === 0
-      ? boxes
-      : boxes.filter((b) => activeFilters.has(b.currentState as BoxState));
+      ? textFilteredBoxes
+      : textFilteredBoxes.filter((b) => activeFilters.has(b.currentState as BoxState));
 
   const stateBadges: { state: BoxState; label: string; count: number; activeClass: string; inactiveClass: string; textColor: string }[] = [
     { state: 'expected',           label: tStates('expected'), count: stats.expected,         activeClass: 'border-purple-500 ring-1 ring-purple-500',   inactiveClass: 'border-purple-500/30 hover:border-purple-500/70', textColor: 'text-purple-400' },
@@ -169,6 +191,20 @@ export default function Dashboard({ projectId }: DashboardProps) {
   return (
     <>
       <RealtimeSync projectId={projectId} onBoxStateChanged={handleBoxStateChanged} />
+
+      <div className="mb-4">
+        <label htmlFor="dashboard-text-filter" className="sr-only">
+          {t('textFilterPlaceholder')}
+        </label>
+        <input
+          id="dashboard-text-filter"
+          type="text"
+          value={textFilter}
+          onChange={(e) => setTextFilter(e.target.value)}
+          placeholder={t('textFilterPlaceholder')}
+          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 text-slate-50 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
@@ -213,7 +249,7 @@ export default function Dashboard({ projectId }: DashboardProps) {
       </div>
 
       {/* Clear filters — only visible when filters are active */}
-      {activeFilters.size > 0 && (
+      {(activeFilters.size > 0 || normalizedTextFilter.length > 0) && (
         <div className="mb-6">
           <button
             type="button"
@@ -249,8 +285,19 @@ export default function Dashboard({ projectId }: DashboardProps) {
                   <span className="text-amber-400 text-base shrink-0" title="Damaged">⚠️</span>
                 )}
               </div>
-              <div className="text-[10px] leading-tight text-slate-300 mt-1">{box.description || '-'}</div>
-              <div className="mt-3 text-sm sm:text-base font-medium text-slate-50">
+              <div className="text-xs leading-tight text-slate-300 mt-1">{box.description || '-'}</div>
+              {box.label && (
+                <div className="text-xs text-blue-300 mt-1 truncate">{box.label}</div>
+              )}
+              <div className="mt-3 flex items-center gap-1 text-[11px] sm:text-xs font-normal text-slate-200 opacity-80">
+                {/* State emoji icon matching scanModes */}
+                <span className="mr-1" aria-hidden="true">
+                  {currentState === 'received' && '📥'}
+                  {currentState === 'in_use' && '⚡'}
+                  {currentState === 'ready_for_checkout' && '↩️'}
+                  {currentState === 'departed' && '📤'}
+                  {currentState === 'expected' && '📦'}
+                </span>
                 {tStates(currentState)}
               </div>
             </button>
@@ -268,6 +315,9 @@ export default function Dashboard({ projectId }: DashboardProps) {
                   {selectedBox.qrCode}
                 </h3>
                 <p className="text-slate-400 text-sm mt-1">{selectedBox.description || selectedBox.qrCode}</p>
+                {selectedBox.label && (
+                  <div className="text-blue-300 text-xs mt-1 truncate">{selectedBox.label}</div>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 {userRole && ['admin', 'inventory_management'].includes(userRole) && (
